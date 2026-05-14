@@ -59,6 +59,22 @@ curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514
 curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&format=json'
 ```
 
+### 应用列表
+
+返回所有 `appName`，以及每个 app 当前有多少条日志。
+
+默认 TOON：
+
+```bash
+curl 'http://127.0.0.1:52742/api/apps'
+```
+
+JSON：
+
+```bash
+curl 'http://127.0.0.1:52742/api/apps?format=json'
+```
+
 ### 删单条
 
 ```bash

@@ -89,8 +89,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, apiPort: PORT, host: HOST });
 });
 
-app.get('/api/apps', (_req, res) => {
-  res.json({ apps: listApps() });
+app.get('/api/apps', (req, res) => {
+  const data = { apps: listApps() };
+  const format = parseFormat((req.query as Record<string, unknown>).format);
+
+  if (format === 'json') {
+    res.json(data);
+    return;
+  }
+
+  res.type('text/toon; charset=utf-8').send(encode(data));
 });
 
 app.post('/api/logs', (req, res) => {

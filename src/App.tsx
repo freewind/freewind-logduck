@@ -80,7 +80,7 @@ const fetchLogs = async (query: LogQuery) => {
 };
 
 const fetchApps = async () => {
-  const response = await fetch('/api/apps');
+  const response = await fetch('/api/apps?format=json');
 
   if (!response.ok) {
     throw new Error(`load_apps_failed:${response.status}`);
