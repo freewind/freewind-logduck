@@ -7,7 +7,6 @@ import {
   DatePicker,
   Descriptions,
   Form,
-  Input,
   InputNumber,
   Layout,
   message,
@@ -23,7 +22,7 @@ import {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
-import { LOG_LEVELS, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
+import { LOG_LEVELS, type AppListItem, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
 
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
@@ -75,6 +74,16 @@ const fetchLogs = async (query: LogQuery) => {
   }
 
   return (await response.json()) as LogListResponse;
+};
+
+const fetchApps = async () => {
+  const response = await fetch('/api/apps');
+
+  if (!response.ok) {
+    throw new Error(`load_apps_failed:${response.status}`);
+  }
+
+  return ((await response.json()) as { apps: AppListItem[] }).apps;
 };
 
 const deleteOne = async (id: string) => {
@@ -162,6 +171,7 @@ export const App: FC = () => {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState<LogQuery>({ limit: 100 });
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
+  const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
 
   const groupedLogs = useMemo(() => {
     const grouped = new Map<string, LogRecord[]>();
@@ -179,7 +189,9 @@ export const App: FC = () => {
     setLoading(true);
 
     try {
-      setData(await fetchLogs(nextQuery));
+      const [logs, apps] = await Promise.all([fetchLogs(nextQuery), fetchApps()]);
+      setData(logs);
+      setAppOptions(apps);
       setQuery(nextQuery);
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : 'load_failed');
@@ -238,7 +250,16 @@ export const App: FC = () => {
                 <Row gutter={16}>
                   <Col xs={24} md={8}>
                     <Form.Item label="应用名" name="appName">
-                      <Input placeholder="app-a" allowClear />
+                      <Select
+                        allowClear
+                        showSearch
+                        placeholder="选择应用"
+                        optionFilterProp="label"
+                        options={appOptions.map((item) => ({
+                          label: `${item.appName} (${item.count})`,
+                          value: item.appName,
+                        }))}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={4}>

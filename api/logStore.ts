@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { LogCreateInput, LogLevel, LogQuery, LogRecord } from '../shared/log';
+import type { AppListItem, LogCreateInput, LogLevel, LogQuery, LogRecord } from '../shared/log';
 
 const logs: LogRecord[] = [];
 
@@ -36,19 +36,24 @@ export const insertLog = (input: LogCreateInput) => {
 export const queryLogs = (query: LogQuery) => {
   const matched = logs.filter((record) => matchQuery(record, query)).sort(byNewest);
   const limited = query.limit ? matched.slice(0, query.limit) : matched;
-  const counts = new Map<string, number>();
-
-  for (const record of matched) {
-    counts.set(record.appName, (counts.get(record.appName) ?? 0) + 1);
-  }
 
   return {
     logs: limited,
     total: matched.length,
-    apps: [...counts.entries()]
-      .map(([appName, count]) => ({ appName, count }))
-      .sort((left, right) => right.count - left.count || left.appName.localeCompare(right.appName)),
+    apps: listApps(matched),
   };
+};
+
+export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
+  const counts = new Map<string, number>();
+
+  for (const record of source) {
+    counts.set(record.appName, (counts.get(record.appName) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([appName, count]) => ({ appName, count }))
+    .sort((left, right) => right.count - left.count || left.appName.localeCompare(right.appName));
 };
 
 export const deleteLogById = (id: string) => {

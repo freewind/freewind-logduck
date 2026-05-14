@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
-import { deleteLogById, deleteLogs, insertLog, queryLogs } from './logStore';
+import { deleteLogById, deleteLogs, insertLog, listApps, queryLogs } from './logStore';
 
 const PORT = Number.parseInt(process.env.LOG_DOG_PORT ?? '52743', 10);
 const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
@@ -69,6 +69,10 @@ const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => 
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, apiPort: PORT, host: HOST });
+});
+
+app.get('/api/apps', (_req, res) => {
+  res.json({ apps: listApps() });
 });
 
 app.post('/api/logs', (req, res) => {

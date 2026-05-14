@@ -33,3 +33,7 @@ export type LogListResponse = {
   total: number;
 };
 
+export type AppListItem = {
+  appName: string;
+  count: number;
+};
