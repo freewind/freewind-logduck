@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FC } from 'react';
+import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import {
   Button,
   Card,
@@ -178,6 +178,8 @@ export const App: FC = () => {
   const [query, setQuery] = useState<LogQuery>({ limit: 100 });
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
+  const watchedValues = Form.useWatch([], form);
+  const latestLoadIdRef = useRef(0);
 
   const groupedLogs = useMemo(() => {
     const grouped = new Map<string, LogRecord[]>();
@@ -192,32 +194,38 @@ export const App: FC = () => {
   }, [data.logs]);
 
   const load = async (nextQuery: LogQuery) => {
+    const loadId = latestLoadIdRef.current + 1;
+    latestLoadIdRef.current = loadId;
     setLoading(true);
 
     try {
       const [logs, apps] = await Promise.all([fetchLogs(nextQuery), fetchApps()]);
+      if (loadId !== latestLoadIdRef.current) {
+        return;
+      }
       setData(logs);
       setAppOptions(apps);
       setQuery(nextQuery);
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : 'load_failed');
+      if (loadId === latestLoadIdRef.current) {
+        messageApi.error(error instanceof Error ? error.message : 'load_failed');
+      }
     } finally {
-      setLoading(false);
+      if (loadId === latestLoadIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    void load({ limit: 100 });
-  }, []);
+    if (!watchedValues) {
+      return;
+    }
+    void load(toQuery(watchedValues));
+  }, [watchedValues]);
 
-  const handleSearch = async () => {
-    const values = await form.validateFields();
-    await load(toQuery(values));
-  };
-
-  const handleReset = async () => {
+  const handleReset = () => {
     form.resetFields();
-    await load({ limit: 100 });
   };
 
   const handleDeleteOne = async (id: string) => {
@@ -251,7 +259,7 @@ export const App: FC = () => {
         </Header>
         <Content style={{ padding: 24 }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Card title="查询">
+            <Card title="筛选">
               <Form form={form} layout="vertical" initialValues={{ limit: 100 }}>
                 <Row gutter={16}>
                   <Col xs={24} md={8}>
@@ -285,10 +293,7 @@ export const App: FC = () => {
                   </Col>
                 </Row>
                 <Space>
-                  <Button type="primary" loading={loading} onClick={() => void handleSearch()}>
-                    查询
-                  </Button>
-                  <Button onClick={() => void handleReset()}>重置</Button>
+                  <Button onClick={handleReset}>重置</Button>
                   <Popconfirm title="按当前筛选批量删除？" onConfirm={() => void handleDeleteMany()}>
                     <Button danger>批量删除</Button>
                   </Popconfirm>
