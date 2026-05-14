@@ -1,4 +1,5 @@
 import express from 'express';
+import { encode } from '@toon-format/toon';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
 import { deleteLogById, deleteLogs, insertLog, listApps, queryLogs } from './logStore';
@@ -9,6 +10,8 @@ const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
 const app = express();
 
 app.use(express.json({ limit: '2mb' }));
+
+type LogResponseFormat = 'toon' | 'json';
 
 const parseLevel = (value: unknown): LogLevel | undefined => {
   if (typeof value !== 'string') {
@@ -46,6 +49,20 @@ const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   level: parseLevel(query.level),
   limit: parseLimit(query.limit),
 });
+
+const parseFormat = (value: unknown): LogResponseFormat => {
+  if (typeof value !== 'string') {
+    return 'toon';
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === 'json' || normalized === 'jason') {
+    return 'json';
+  }
+
+  return 'toon';
+};
 
 const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => {
   const appName = parseText(body.appName);
@@ -90,7 +107,16 @@ app.post('/api/logs', (req, res) => {
 });
 
 app.get('/api/logs', (req, res) => {
-  res.json(queryLogs(parseQuery(req.query as Record<string, unknown>)));
+  const query = req.query as Record<string, unknown>;
+  const data = queryLogs(parseQuery(query));
+  const format = parseFormat(query.format);
+
+  if (format === 'json') {
+    res.json(data);
+    return;
+  }
+
+  res.type('text/toon; charset=utf-8').send(encode(data));
 });
 
 app.delete('/api/logs/:id', (req, res) => {

@@ -67,7 +67,9 @@ const toQuery = (values: QueryFormValues): LogQuery => ({
 
 const fetchLogs = async (query: LogQuery) => {
   const queryString = buildQueryString(query);
-  const response = await fetch(`/api/logs${queryString ? `?${queryString}` : ''}`);
+  const params = new URLSearchParams(queryString);
+  params.set('format', 'json');
+  const response = await fetch(`/api/logs?${params.toString()}`);
 
   if (!response.ok) {
     throw new Error(`load_failed:${response.status}`);

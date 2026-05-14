@@ -34,6 +34,14 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20'
 ```
 
+默认返回 TOON。
+
+若要 JSON：
+
+```bash
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20&format=json'
+```
+
 ### 删单条
 
 ```bash
