@@ -126,6 +126,7 @@ const LogTable: FC<{
     loading={loading}
     dataSource={logs}
     title={header ? () => header : undefined}
+    pagination={{ pageSize: 100, showSizeChanger: false }}
     columns={[
       {
         title: '应用',
@@ -277,8 +278,8 @@ export const App: FC = () => {
                       <InputNumber min={1} placeholder="全部" style={{ width: 120 }} />
                     </Form.Item>
                     <Button onClick={handleReset}>重置</Button>
-                    <Popconfirm title="按当前筛选批量删除？" onConfirm={() => void handleDeleteMany()}>
-                      <Button danger>批量删除</Button>
+                    <Popconfirm title={`删除当前表格中的全部结果？共 ${data.total} 条`} onConfirm={() => void handleDeleteMany()}>
+                      <Button danger>删除筛选结果</Button>
                     </Popconfirm>
                   </Space>
                 </Form>
