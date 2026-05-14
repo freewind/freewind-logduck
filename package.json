@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx server/index.ts",
+    "dev": "concurrently -k -n api,web -c yellow,cyan \"pnpm dev:api\" \"pnpm dev:web\"",
+    "dev:api": "LOG_DOG_HOST=127.0.0.1 LOG_DOG_PORT=52743 tsx api/index.ts",
+    "dev:web": "vite --host 0.0.0.0 --port 52742 --strictPort",
     "build": "tsc --noEmit && vite build",
-    "start": "NODE_ENV=production tsx server/index.ts"
+    "start": "concurrently -k -n api,web -c yellow,cyan \"pnpm start:api\" \"pnpm start:web\"",
+    "start:api": "LOG_DOG_HOST=127.0.0.1 LOG_DOG_PORT=52743 NODE_ENV=production tsx api/index.ts",
+    "start:web": "vite preview --host 0.0.0.0 --port 52742 --strictPort"
   },
   "dependencies": {
     "antd": "^5.27.0",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "uuid": "^11.1.0"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
@@ -22,9 +25,9 @@
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vite": "^7.1.7"
   }
 }
-

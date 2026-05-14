@@ -1,16 +1,10 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
 import { deleteLogById, deleteLogs, insertLog, queryLogs } from './logStore';
 
-const PORT = 52742;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const distDir = path.resolve(rootDir, 'dist');
+const PORT = Number.parseInt(process.env.LOG_DOG_PORT ?? '52743', 10);
+const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
 
 const app = express();
 
@@ -74,7 +68,7 @@ const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => 
 };
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, port: PORT });
+  res.json({ ok: true, apiPort: PORT, host: HOST });
 });
 
 app.post('/api/logs', (req, res) => {
@@ -111,25 +105,6 @@ app.delete('/api/logs', (req, res) => {
   res.json({ deleted });
 });
 
-const start = async () => {
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(distDir));
-    app.get('/{*path}', (_req, res) => {
-      res.sendFile(path.resolve(distDir, 'index.html'));
-    });
-  } else {
-    const vite = await createViteServer({
-      root: rootDir,
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-
-    app.use(vite.middlewares);
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Log Dog listening on http://0.0.0.0:${PORT}`);
-  });
-};
-
-void start();
+app.listen(PORT, HOST, () => {
+  console.log(`Log Dog API listening on http://${HOST}:${PORT}`);
+});

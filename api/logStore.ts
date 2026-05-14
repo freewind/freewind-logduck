@@ -71,4 +71,3 @@ export const deleteLogs = (query: LogQuery) => {
 
   return before - logs.length;
 };
-
