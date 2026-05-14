@@ -114,7 +114,10 @@ const levelColor = (level: LogLevel) => {
   if (level === 'warn') {
     return 'orange';
   }
-  return 'blue';
+  if (level === 'info') {
+    return 'blue';
+  }
+  return 'default';
 };
 
 const LogTable: FC<{

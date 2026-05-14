@@ -22,11 +22,13 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   -d '{
     "appName": "demo-app",
     "timestamp": "2026-05-14T10:00:00.000Z",
-    "level": "error",
+    "level": "debug",
     "message": "login failed",
     "details": "stack..."
   }'
 ```
+
+`level` 支持：`debug | info | warn | error`
 
 ### 查日志
 
