@@ -30,11 +30,20 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 
 ### 查日志
 
+`format` 参数：
+
+- `toon`：默认值，适合给 AI / 省 token
+- `json`：适合网页或普通程序直接消费
+
 ```bash
 curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20'
 ```
 
-默认返回 TOON。
+等价于：
+
+```bash
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20&format=toon'
+```
 
 若要 JSON：
 
