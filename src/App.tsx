@@ -17,7 +17,7 @@ import {
 import type { Dayjs } from 'dayjs';
 
 import { LOG_LEVELS, type AppListItem, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
-import { formatLogTime } from '../shared/logTime';
+import { formatLogTime, parseLogTime } from '../shared/logTime';
 
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
@@ -140,6 +140,8 @@ const LogTable: FC<{
         title: '时间',
         dataIndex: 'timestamp',
         render: (value: string) => value,
+        sorter: (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp),
+        defaultSortOrder: 'descend',
         width: 180,
       },
       {
