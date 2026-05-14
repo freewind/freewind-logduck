@@ -1,9 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FC } from 'react';
+import { useEffect, useRef, useState, type FC, type ReactNode } from 'react';
 import {
   Button,
-  Card,
-  Col,
-  Collapse,
   DatePicker,
   Descriptions,
   Form,
@@ -11,16 +8,13 @@ import {
   Layout,
   message,
   Popconfirm,
-  Row,
   Select,
   Space,
-  Statistic,
   Table,
   Tag,
   Typography,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
-import dayjs from 'dayjs';
 
 import { LOG_LEVELS, type AppListItem, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
 import { formatLogTime } from '../shared/logTime';
@@ -122,14 +116,22 @@ const levelColor = (level: LogLevel) => {
 };
 
 const LogTable: FC<{
+  header?: ReactNode;
+  loading: boolean;
   logs: LogRecord[];
   onDelete: (id: string) => Promise<void>;
-}> = ({ logs, onDelete }) => (
+}> = ({ header, loading, logs, onDelete }) => (
   <Table<LogRecord>
     rowKey="id"
-    pagination={false}
+    loading={loading}
     dataSource={logs}
+    title={header ? () => header : undefined}
     columns={[
+      {
+        title: '应用',
+        dataIndex: 'appName',
+        width: 180,
+      },
       {
         title: '时间',
         dataIndex: 'timestamp',
@@ -175,23 +177,11 @@ export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState<LogQuery>({ limit: 100 });
+  const [query, setQuery] = useState<LogQuery>({});
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
   const watchedValues = Form.useWatch([], form);
   const latestLoadIdRef = useRef(0);
-
-  const groupedLogs = useMemo(() => {
-    const grouped = new Map<string, LogRecord[]>();
-
-    for (const record of data.logs) {
-      const list = grouped.get(record.appName) ?? [];
-      list.push(record);
-      grouped.set(record.appName, list);
-    }
-
-    return [...grouped.entries()];
-  }, [data.logs]);
 
   const load = async (nextQuery: LogQuery) => {
     const loadId = latestLoadIdRef.current + 1;
@@ -218,10 +208,7 @@ export const App: FC = () => {
   };
 
   useEffect(() => {
-    if (!watchedValues) {
-      return;
-    }
-    void load(toQuery(watchedValues));
+    void load(toQuery(watchedValues ?? {}));
   }, [watchedValues]);
 
   const handleReset = () => {
@@ -258,77 +245,46 @@ export const App: FC = () => {
           </Typography.Title>
         </Header>
         <Content style={{ padding: 24 }}>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Card title="筛选">
-              <Form form={form} layout="vertical" initialValues={{ limit: 100 }}>
-                <Row gutter={16}>
-                  <Col xs={24} md={8}>
+          <LogTable
+            loading={loading}
+            logs={data.logs}
+            onDelete={handleDeleteOne}
+            header={
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Typography.Text>日志 {data.total} 条</Typography.Text>
+                <Form form={form} layout="inline">
+                  <Space wrap size={12}>
                     <Form.Item label="应用名" name="appName">
                       <Select
                         allowClear
                         showSearch
                         placeholder="选择应用"
                         optionFilterProp="label"
+                        style={{ width: 220 }}
                         options={appOptions.map((item) => ({
                           label: `${item.appName} (${item.count})`,
                           value: item.appName,
                         }))}
                       />
                     </Form.Item>
-                  </Col>
-                  <Col xs={24} md={4}>
                     <Form.Item label="级别" name="level">
-                      <Select allowClear options={levelOptions} />
+                      <Select allowClear options={levelOptions} style={{ width: 120 }} />
                     </Form.Item>
-                  </Col>
-                  <Col xs={24} md={8}>
                     <Form.Item label="时间范围" name="range">
-                      <RangePicker showTime style={{ width: '100%' }} />
+                      <RangePicker showTime />
                     </Form.Item>
-                  </Col>
-                  <Col xs={24} md={4}>
                     <Form.Item label="条数" name="limit">
-                      <InputNumber min={1} style={{ width: '100%' }} />
+                      <InputNumber min={1} placeholder="全部" style={{ width: 120 }} />
                     </Form.Item>
-                  </Col>
-                </Row>
-                <Space>
-                  <Button onClick={handleReset}>重置</Button>
-                  <Popconfirm title="按当前筛选批量删除？" onConfirm={() => void handleDeleteMany()}>
-                    <Button danger>批量删除</Button>
-                  </Popconfirm>
-                </Space>
-              </Form>
-            </Card>
-
-            <Row gutter={16}>
-              <Col xs={24} md={8}>
-                <Card>
-                  <Statistic title="命中总数" value={data.total} loading={loading} />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card>
-                  <Statistic title="应用数" value={data.apps.length} loading={loading} />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card>
-                  <Statistic title="当前 limit" value={query.limit ?? 'ALL'} loading={loading} />
-                </Card>
-              </Col>
-            </Row>
-
-            <Card title="按应用分类">
-              <Collapse
-                items={groupedLogs.map(([appName, logs]) => ({
-                  key: appName,
-                  label: `${appName} (${logs.length})`,
-                  children: <LogTable logs={logs} onDelete={handleDeleteOne} />,
-                }))}
-              />
-            </Card>
-          </Space>
+                    <Button onClick={handleReset}>重置</Button>
+                    <Popconfirm title="按当前筛选批量删除？" onConfirm={() => void handleDeleteMany()}>
+                      <Button danger>批量删除</Button>
+                    </Popconfirm>
+                  </Space>
+                </Form>
+              </Space>
+            }
+          />
         </Content>
       </Layout>
     </>
