@@ -33,46 +33,22 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 
 ### 查日志
 
-`format` 参数：
-
-- `toon`：默认值，适合给 AI / 省 token
-- `json`：适合网页或普通程序直接消费
-
 时间过滤参数：
 
 - `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
+- `maxFieldLength`：单字段最大字符数，默认 `100`，传 `0` 表示完整返回
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20'
-```
-
-等价于：
-
-```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&format=toon'
-```
-
-若要 JSON：
-
-```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&format=json'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&maxFieldLength=100'
 ```
 
 ### 应用列表
 
 返回所有 `appName`，以及每个 app 当前有多少条日志。
 
-默认 TOON：
-
 ```bash
 curl 'http://127.0.0.1:52742/api/apps'
-```
-
-JSON：
-
-```bash
-curl 'http://127.0.0.1:52742/api/apps?format=json'
 ```
 
 ### 删单条

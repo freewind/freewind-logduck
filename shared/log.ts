@@ -25,6 +25,7 @@ export type LogQuery = {
   to?: string;
   level?: LogLevel;
   limit?: number;
+  maxFieldLength?: number;
 };
 
 export type LogListResponse = {

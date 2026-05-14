@@ -1,5 +1,4 @@
 import express from 'express';
-import { encode } from '@toon-format/toon';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
 import { isLogTime } from '../shared/logTime';
@@ -11,8 +10,6 @@ const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
 const app = express();
 
 app.use(express.json({ limit: '2mb' }));
-
-type LogResponseFormat = 'toon' | 'json';
 
 const parseLevel = (value: unknown): LogLevel | undefined => {
   if (typeof value !== 'string') {
@@ -43,27 +40,23 @@ const parseLimit = (value: unknown) => {
   return Number.isFinite(limit) && limit > 0 ? limit : undefined;
 };
 
+const parseMaxFieldLength = (value: unknown) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return 100;
+  }
+
+  const maxFieldLength = Number.parseInt(value, 10);
+  return Number.isFinite(maxFieldLength) && maxFieldLength >= 0 ? maxFieldLength : 100;
+};
+
 const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   appName: parseOptionalText(query.appName),
   from: parseTimestamp(query.from),
   to: parseTimestamp(query.to),
   level: parseLevel(query.level),
   limit: parseLimit(query.limit),
+  maxFieldLength: parseMaxFieldLength(query.maxFieldLength),
 });
-
-const parseFormat = (value: unknown): LogResponseFormat => {
-  if (typeof value !== 'string') {
-    return 'toon';
-  }
-
-  const normalized = value.trim().toLowerCase();
-
-  if (normalized === 'json' || normalized === 'jason') {
-    return 'json';
-  }
-
-  return 'toon';
-};
 
 const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => {
   const appName = parseText(body.appName);
@@ -89,16 +82,8 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, apiPort: PORT, host: HOST });
 });
 
-app.get('/api/apps', (req, res) => {
-  const data = { apps: listApps() };
-  const format = parseFormat((req.query as Record<string, unknown>).format);
-
-  if (format === 'json') {
-    res.json(data);
-    return;
-  }
-
-  res.type('text/toon; charset=utf-8').send(encode(data));
+app.get('/api/apps', (_req, res) => {
+  res.json({ apps: listApps() });
 });
 
 app.post('/api/logs', (req, res) => {
@@ -116,16 +101,7 @@ app.post('/api/logs', (req, res) => {
 });
 
 app.get('/api/logs', (req, res) => {
-  const query = req.query as Record<string, unknown>;
-  const data = queryLogs(parseQuery(query));
-  const format = parseFormat(query.format);
-
-  if (format === 'json') {
-    res.json(data);
-    return;
-  }
-
-  res.type('text/toon; charset=utf-8').send(encode(data));
+  res.json(queryLogs(parseQuery(req.query as Record<string, unknown>)));
 });
 
 app.delete('/api/logs/:id', (req, res) => {

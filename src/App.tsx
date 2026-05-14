@@ -28,6 +28,7 @@ type QueryFormValues = {
   level?: LogLevel;
   range?: [Dayjs, Dayjs];
   limit?: number;
+  maxFieldLength?: number;
 };
 
 const buildQueryString = (query: LogQuery) => {
@@ -48,6 +49,9 @@ const buildQueryString = (query: LogQuery) => {
   if (query.limit) {
     params.set('limit', `${query.limit}`);
   }
+  if (query.maxFieldLength !== undefined) {
+    params.set('maxFieldLength', `${query.maxFieldLength}`);
+  }
 
   return params.toString();
 };
@@ -58,13 +62,12 @@ const toQuery = (values: QueryFormValues): LogQuery => ({
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
   limit: values.limit,
+  maxFieldLength: values.maxFieldLength ?? 100,
 });
 
 const fetchLogs = async (query: LogQuery) => {
   const queryString = buildQueryString(query);
-  const params = new URLSearchParams(queryString);
-  params.set('format', 'json');
-  const response = await fetch(`/api/logs?${params.toString()}`);
+  const response = await fetch(`/api/logs${queryString ? `?${queryString}` : ''}`);
 
   if (!response.ok) {
     throw new Error(`load_failed:${response.status}`);
@@ -74,7 +77,7 @@ const fetchLogs = async (query: LogQuery) => {
 };
 
 const fetchApps = async () => {
-  const response = await fetch('/api/apps?format=json');
+  const response = await fetch('/api/apps');
 
   if (!response.ok) {
     throw new Error(`load_apps_failed:${response.status}`);
@@ -178,7 +181,7 @@ export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState<LogQuery>({});
+  const [query, setQuery] = useState<LogQuery>({ maxFieldLength: 100 });
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
   const watchedValues = Form.useWatch([], form);
@@ -253,7 +256,7 @@ export const App: FC = () => {
             header={
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Typography.Text>日志 {data.total} 条</Typography.Text>
-                <Form form={form} layout="inline">
+                <Form form={form} initialValues={{ maxFieldLength: 100 }} layout="inline">
                   <Space wrap size={12}>
                     <Form.Item label="应用名" name="appName">
                       <Select
@@ -276,6 +279,9 @@ export const App: FC = () => {
                     </Form.Item>
                     <Form.Item label="条数" name="limit">
                       <InputNumber min={1} placeholder="全部" style={{ width: 120 }} />
+                    </Form.Item>
+                    <Form.Item label="字段长" name="maxFieldLength">
+                      <InputNumber min={0} placeholder="100" style={{ width: 120 }} />
                     </Form.Item>
                     <Button onClick={handleReset}>重置</Button>
                     <Popconfirm title={`删除当前表格中的全部结果？共 ${data.total} 条`} onConfirm={() => void handleDeleteMany()}>

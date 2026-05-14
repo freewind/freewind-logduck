@@ -13,7 +13,6 @@
     "start:web": "vite preview --host 0.0.0.0 --port 52742 --strictPort"
   },
   "dependencies": {
-    "@toon-format/toon": "^2.2.0",
     "antd": "^5.27.0",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",

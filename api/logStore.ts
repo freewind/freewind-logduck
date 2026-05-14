@@ -21,6 +21,20 @@ const matchQuery = (record: LogRecord, query: LogQuery) =>
   matchFrom(record, query.from) &&
   matchTo(record, query.to);
 
+const truncateText = (value: string | undefined, maxFieldLength?: number) => {
+  if (!value || maxFieldLength === undefined || maxFieldLength === 0 || value.length <= maxFieldLength) {
+    return value;
+  }
+
+  return value.slice(0, maxFieldLength);
+};
+
+const trimLogFields = (record: LogRecord, maxFieldLength?: number): LogRecord => ({
+  ...record,
+  message: truncateText(record.message, maxFieldLength) ?? '',
+  details: truncateText(record.details, maxFieldLength),
+});
+
 export const insertLog = (input: LogCreateInput) => {
   const record: LogRecord = {
     ...input,
@@ -37,7 +51,7 @@ export const queryLogs = (query: LogQuery) => {
   const limited = query.limit ? matched.slice(0, query.limit) : matched;
 
   return {
-    logs: limited,
+    logs: limited.map((record) => trimLogFields(record, query.maxFieldLength)),
     total: matched.length,
     apps: listApps(matched),
   };
