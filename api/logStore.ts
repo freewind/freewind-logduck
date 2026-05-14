@@ -1,20 +1,19 @@
 import { randomUUID } from 'node:crypto';
 
 import type { AppListItem, LogCreateInput, LogLevel, LogQuery, LogRecord } from '../shared/log';
+import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
 
-const parseTime = (value: string) => new Date(value).getTime();
-
-const byNewest = (left: LogRecord, right: LogRecord) => parseTime(right.timestamp) - parseTime(left.timestamp);
+const byNewest = (left: LogRecord, right: LogRecord) => parseLogTime(right.timestamp) - parseLogTime(left.timestamp);
 
 const matchLevel = (record: LogRecord, level?: LogLevel) => !level || record.level === level;
 
 const matchApp = (record: LogRecord, appName?: string) => !appName || record.appName === appName;
 
-const matchFrom = (record: LogRecord, from?: string) => !from || parseTime(record.timestamp) >= parseTime(from);
+const matchFrom = (record: LogRecord, from?: string) => !from || parseLogTime(record.timestamp) >= parseLogTime(from);
 
-const matchTo = (record: LogRecord, to?: string) => !to || parseTime(record.timestamp) <= parseTime(to);
+const matchTo = (record: LogRecord, to?: string) => !to || parseLogTime(record.timestamp) <= parseLogTime(to);
 
 const matchQuery = (record: LogRecord, query: LogQuery) =>
   matchApp(record, query.appName) &&

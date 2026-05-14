@@ -23,6 +23,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 import { LOG_LEVELS, type AppListItem, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
+import { formatLogTime } from '../shared/logTime';
 
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
@@ -60,8 +61,8 @@ const buildQueryString = (query: LogQuery) => {
 const toQuery = (values: QueryFormValues): LogQuery => ({
   appName: values.appName?.trim() || undefined,
   level: values.level,
-  from: values.range?.[0]?.toISOString(),
-  to: values.range?.[1]?.toISOString(),
+  from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
+  to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
   limit: values.limit,
 });
 
@@ -132,7 +133,7 @@ const LogTable: FC<{
       {
         title: '时间',
         dataIndex: 'timestamp',
-        render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm:ss'),
+        render: (value: string) => value,
         width: 180,
       },
       {

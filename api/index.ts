@@ -2,6 +2,7 @@ import express from 'express';
 import { encode } from '@toon-format/toon';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
+import { isLogTime } from '../shared/logTime';
 import { deleteLogById, deleteLogs, insertLog, listApps, queryLogs } from './logStore';
 
 const PORT = Number.parseInt(process.env.LOG_DOG_PORT ?? '52743', 10);
@@ -30,7 +31,7 @@ const parseOptionalText = (value: unknown) => {
 
 const parseTimestamp = (value: unknown) => {
   const text = parseText(value);
-  return text && !Number.isNaN(Date.parse(text)) ? text : '';
+  return text && isLogTime(text) ? text : '';
 };
 
 const parseLimit = (value: unknown) => {

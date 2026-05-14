@@ -21,13 +21,14 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   -H 'content-type: application/json' \
   -d '{
     "appName": "demo-app",
-    "timestamp": "2026-05-14T10:00:00.000Z",
+    "timestamp": "20260514-100000",
     "level": "debug",
     "message": "login failed",
     "details": "stack..."
   }'
 ```
 
+`timestamp` 使用本地时间格式 `YYYYMMDD-HHmmss`。
 `level` 支持：`debug | info | warn | error`
 
 ### 查日志
@@ -37,20 +38,25 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 - `toon`：默认值，适合给 AI / 省 token
 - `json`：适合网页或普通程序直接消费
 
+时间过滤参数：
+
+- `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
+- `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
+
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20'
 ```
 
 等价于：
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20&format=toon'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&format=toon'
 ```
 
 若要 JSON：
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&limit=20&format=json'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&format=json'
 ```
 
 ### 删单条
