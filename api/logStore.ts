@@ -5,7 +5,7 @@ import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
 
-const byNewest = (left: LogRecord, right: LogRecord) => parseLogTime(right.timestamp) - parseLogTime(left.timestamp);
+const byOldest = (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp);
 
 const matchLevel = (record: LogRecord, level?: LogLevel) => !level || record.level === level;
 
@@ -47,7 +47,7 @@ export const insertLog = (input: LogCreateInput) => {
 };
 
 export const queryLogs = (query: LogQuery) => {
-  const matched = logs.filter((record) => matchQuery(record, query)).sort(byNewest);
+  const matched = logs.filter((record) => matchQuery(record, query)).sort(byOldest);
   const limited = query.limit ? matched.slice(0, query.limit) : matched;
 
   return {

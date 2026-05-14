@@ -38,6 +38,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 - `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
 - `maxFieldLength`：单字段最大字符数，默认 `100`，传 `0` 表示完整返回
+- 返回顺序：旧的在前；网页 table 默认反向显示，最新在前
 
 ```bash
 curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error&from=20260514-100000&to=20260514-110000&limit=20&maxFieldLength=100'

@@ -127,7 +127,7 @@ const LogTable: FC<{
   <Table<LogRecord>
     rowKey="id"
     loading={loading}
-    dataSource={logs}
+    dataSource={[...logs].sort((left, right) => parseLogTime(right.timestamp) - parseLogTime(left.timestamp))}
     title={header ? () => header : undefined}
     pagination={{ pageSize: 100, showSizeChanger: false }}
     columns={[
