@@ -147,18 +147,18 @@ const LogTable: FC<{
     pagination={{ pageSize: 100, showSizeChanger: false }}
     columns={[
       {
-        title: '应用',
+        title: 'appName',
         dataIndex: 'appName',
         width: 180,
       },
       {
-        title: '版本',
+        title: 'version',
         dataIndex: 'version',
         width: 180,
         render: (value?: number) => value ?? '-',
       },
       {
-        title: '时间',
+        title: 'timestamp',
         dataIndex: 'timestamp',
         render: (value: string) => value,
         sorter: (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp),
@@ -166,17 +166,17 @@ const LogTable: FC<{
         width: 180,
       },
       {
-        title: '级别',
+        title: 'level',
         dataIndex: 'level',
         width: 100,
         render: (value: LogLevel) => <Tag color={levelColor(value)}>{value.toUpperCase()}</Tag>,
       },
       {
-        title: '摘要',
+        title: 'message',
         dataIndex: 'message',
       },
       {
-        title: '操作',
+        title: 'action',
         key: 'action',
         width: 100,
         render: (_, record) => (
@@ -191,10 +191,10 @@ const LogTable: FC<{
     expandable={{
       expandedRowRender: (record) => (
         <Descriptions column={1} size="small">
-          <Descriptions.Item label="应用">{record.appName}</Descriptions.Item>
-          <Descriptions.Item label="版本">{record.version ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="详细">{record.details || '-'}</Descriptions.Item>
-          <Descriptions.Item label="ID">{record.id}</Descriptions.Item>
+          <Descriptions.Item label="appName">{record.appName}</Descriptions.Item>
+          <Descriptions.Item label="version">{record.version ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="details">{record.details || '-'}</Descriptions.Item>
+          <Descriptions.Item label="id">{record.id}</Descriptions.Item>
         </Descriptions>
       ),
     }}
@@ -284,14 +284,14 @@ export const App: FC = () => {
             onDelete={handleDeleteOne}
             header={
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Typography.Text>日志 {data.total} 条</Typography.Text>
+                <Typography.Text>total {data.total}</Typography.Text>
                 <Form form={form} initialValues={DEFAULT_QUERY} layout="inline" onFinish={handleSearch}>
                   <Space wrap size={12}>
-                    <Form.Item label="应用名" name="appName">
+                    <Form.Item label="appName" name="appName">
                       <Select
                         allowClear
                         showSearch
-                        placeholder="选择应用"
+                        placeholder="appName"
                         optionFilterProp="label"
                         style={{ width: 220 }}
                         options={appOptions.map((item) => ({
@@ -300,11 +300,11 @@ export const App: FC = () => {
                         }))}
                       />
                     </Form.Item>
-                    <Form.Item label="版本" name="version">
+                    <Form.Item label="version" name="version">
                       <Select
                         allowClear
                         showSearch
-                        placeholder="选择版本"
+                        placeholder="version"
                         optionFilterProp="label"
                         style={{ width: 220 }}
                         options={versionOptions.map((item) => ({
@@ -313,22 +313,22 @@ export const App: FC = () => {
                         }))}
                       />
                     </Form.Item>
-                    <Form.Item label="版本>=" name="versionGte">
-                      <InputNumber placeholder="最小版本" style={{ width: 160 }} />
+                    <Form.Item label="versionGte" name="versionGte">
+                      <InputNumber placeholder="versionGte" style={{ width: 160 }} />
                     </Form.Item>
-                    <Form.Item label="消息含" name="messageKeyword">
+                    <Form.Item label="messageKeyword" name="messageKeyword">
                       <Input placeholder="message keyword" style={{ width: 180 }} />
                     </Form.Item>
-                    <Form.Item label="详情含" name="detailsKeyword">
+                    <Form.Item label="detailsKeyword" name="detailsKeyword">
                       <Input placeholder="details keyword" style={{ width: 180 }} />
                     </Form.Item>
-                    <Form.Item label="级别" name="level">
+                    <Form.Item label="level" name="level">
                       <Select allowClear options={levelOptions} style={{ width: 120 }} />
                     </Form.Item>
-                    <Form.Item label="时间范围" name="range">
+                    <Form.Item label="range" name="range">
                       <RangePicker showTime />
                     </Form.Item>
-                    <Form.Item label="字段长" name="maxFieldLength">
+                    <Form.Item label="maxFieldLength" name="maxFieldLength">
                       <InputNumber min={0} placeholder="300" style={{ width: 120 }} />
                     </Form.Item>
                     <Button htmlType="submit" type="primary">
