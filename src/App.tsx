@@ -34,7 +34,8 @@ const DEFAULT_QUERY: LogQuery = { maxFieldLength: 300 };
 
 type QueryFormValues = {
   appName?: string;
-  version?: string;
+  version?: number;
+  versionGte?: number;
   level?: LogLevel;
   range?: [Dayjs, Dayjs];
   maxFieldLength?: number;
@@ -46,8 +47,11 @@ const buildQueryString = (query: LogQuery) => {
   if (query.appName) {
     params.set('appName', query.appName);
   }
-  if (query.version) {
-    params.set('version', query.version);
+  if (query.version !== undefined) {
+    params.set('version', `${query.version}`);
+  }
+  if (query.versionGte !== undefined) {
+    params.set('versionGte', `${query.versionGte}`);
   }
   if (query.level) {
     params.set('level', query.level);
@@ -67,7 +71,8 @@ const buildQueryString = (query: LogQuery) => {
 
 const toQuery = (values: QueryFormValues): LogQuery => ({
   appName: values.appName?.trim() || undefined,
-  version: values.version?.trim() || undefined,
+  version: values.version,
+  versionGte: values.versionGte,
   level: values.level,
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
@@ -139,7 +144,7 @@ const LogTable: FC<{
         title: '版本',
         dataIndex: 'version',
         width: 180,
-        render: (value?: string) => value || '-',
+        render: (value?: number) => value ?? '-',
       },
       {
         title: '时间',
@@ -176,7 +181,7 @@ const LogTable: FC<{
       expandedRowRender: (record) => (
         <Descriptions column={1} size="small">
           <Descriptions.Item label="应用">{record.appName}</Descriptions.Item>
-          <Descriptions.Item label="版本">{record.version || '-'}</Descriptions.Item>
+          <Descriptions.Item label="版本">{record.version ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="详细">{record.details || '-'}</Descriptions.Item>
           <Descriptions.Item label="ID">{record.id}</Descriptions.Item>
         </Descriptions>
@@ -296,6 +301,9 @@ export const App: FC = () => {
                           value: item.version,
                         }))}
                       />
+                    </Form.Item>
+                    <Form.Item label="版本>=" name="versionGte">
+                      <InputNumber placeholder="最小版本" style={{ width: 160 }} />
                     </Form.Item>
                     <Form.Item label="级别" name="level">
                       <Select allowClear options={levelOptions} style={{ width: 120 }} />

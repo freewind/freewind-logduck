@@ -51,6 +51,19 @@ const parseOptionalText = (value: unknown) => {
   return text || undefined;
 };
 
+const parseOptionalNumber = (value: unknown) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return undefined;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+};
+
 const parseTimestamp = (value: unknown) => {
   const text = parseText(value);
   return text && isLogTime(text) ? text : '';
@@ -76,7 +89,8 @@ const parseMaxFieldLength = (value: unknown) => {
 
 const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   appName: parseOptionalText(query.appName),
-  version: parseOptionalText(query.version),
+  version: parseOptionalNumber(query.version),
+  versionGte: parseOptionalNumber(query.versionGte),
   from: parseTimestamp(query.from),
   to: parseTimestamp(query.to),
   level: parseLevel(query.level),
@@ -86,7 +100,7 @@ const parseQuery = (query: Record<string, unknown>): LogQuery => ({
 
 const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => {
   const appName = parseText(body.appName);
-  const version = parseOptionalText(body.version);
+  const version = parseOptionalNumber(body.version);
   const timestamp = parseTimestamp(body.timestamp);
   const message = parseText(body.message);
   const level = parseLevel(body.level);

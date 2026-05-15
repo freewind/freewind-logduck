@@ -15,7 +15,10 @@ const matchLevel = (record: LogRecord, level?: LogLevel) =>
 
 const matchApp = (record: LogRecord, appName?: string) => !appName || record.appName === appName;
 
-const matchVersion = (record: LogRecord, version?: string) => !version || record.version === version;
+const matchVersion = (record: LogRecord, version?: number) => version === undefined || record.version === version;
+
+const matchVersionGte = (record: LogRecord, versionGte?: number) =>
+  versionGte === undefined || (record.version !== undefined && record.version >= versionGte);
 
 const matchFrom = (record: LogRecord, from?: string) => !from || parseLogTime(record.timestamp) >= parseLogTime(from);
 
@@ -24,6 +27,7 @@ const matchTo = (record: LogRecord, to?: string) => !to || parseLogTime(record.t
 const matchQuery = (record: LogRecord, query: LogQuery) =>
   matchApp(record, query.appName) &&
   matchVersion(record, query.version) &&
+  matchVersionGte(record, query.versionGte) &&
   matchLevel(record, query.level) &&
   matchFrom(record, query.from) &&
   matchTo(record, query.to);
@@ -44,8 +48,9 @@ const trimLogFields = (record: LogRecord, maxFieldLength?: number): LogRecord =>
 
 const toVersionList = (counts: Map<string, number>): VersionListItem[] =>
   [...counts.entries()]
-    .map(([version, count]) => ({ version, count }))
-    .sort((left, right) => right.version.localeCompare(left.version));
+    .map(([version, count]) => ({ version: Number(version), count }))
+    .sort((left, right) => right.version - left.version);
+ 
 
 const trimAppLogs = (appName: string) => {
   let count = 0;
@@ -94,8 +99,9 @@ export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
     const current = summary.get(record.appName) ?? { count: 0, versions: new Map<string, number>() };
     current.count += 1;
 
-    if (record.version) {
-      current.versions.set(record.version, (current.versions.get(record.version) ?? 0) + 1);
+    if (record.version !== undefined) {
+      const versionKey = `${record.version}`;
+      current.versions.set(versionKey, (current.versions.get(versionKey) ?? 0) + 1);
     }
 
     summary.set(record.appName, current);
@@ -114,11 +120,12 @@ export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
   const counts = new Map<string, number>();
 
   for (const record of source) {
-    if (!record.version) {
+    if (record.version === undefined) {
       continue;
     }
 
-    counts.set(record.version, (counts.get(record.version) ?? 0) + 1);
+    const versionKey = `${record.version}`;
+    counts.set(versionKey, (counts.get(versionKey) ?? 0) + 1);
   }
 
   return toVersionList(counts);

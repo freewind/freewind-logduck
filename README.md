@@ -26,7 +26,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   -H 'content-type: application/json' \
   -d '{
     "appName": "demo-app",
-    "version": "20260515-120000",
+    "version": 42,
     "timestamp": "20260514-100000",
     "level": "debug",
     "message": "login failed",
@@ -34,7 +34,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   }'
 ```
 
-`version` 可选，类型 `string`。建议直接用安装包/构建产物时间戳，格式同 `timestamp`，便于快速判断日志新旧。
+`version` 可选，类型 `number`。建议业务代码里维护 `logVersion` 数字，每次 commit 前自增 1，再随日志上报，便于 AI 判新旧。
 `timestamp` 使用本地时间格式 `YYYYMMDD-HHmmss`。
 `level` 支持：`debug | info | warn | error`。查询时按阈值语义，`info` 表示 `info/warn/error`，其余同理。
 
@@ -45,13 +45,14 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 - `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
 - `version`：可选，按版本精确过滤
+- `versionGte`：可选，按版本下限过滤，命中 `version >= versionGte`
 - `limit`：可选，仅 API 查询生效；网页默认全量读取
 - `level`：阈值过滤，`debug/info/warn/error` 分别表示“该级别及以上”
 - `maxFieldLength`：单字段最大字符数，默认 `300`，传 `0` 表示完整返回
 - 返回顺序：旧的在前；网页 table 默认反向显示，最新在前
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&versionGte=40&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
 ```
 
 返回：
@@ -63,14 +64,15 @@ curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&l
 - 每个 `versions` 项含 `version` `count`
 - AI 可直接读 `apps[].versions[]` 决定该拿哪个 app / version，不必再额外访问 `/api/apps`
 - `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
-- `versions` 排序：按 `version` 时间戳字符串倒序，新版本在前
+- `versions` 排序：按数字倒序，新版本在前
 
 ### 版本哨兵约定
 
 为避免旧安装/旧包日志混进来造成误判，发送端接入时统一加这条约定：
 
 - 最好每条日志都带 `version`
-- `version` 推荐直接写构建或安装时间戳，如 `20260515-120000`
+- `version` 推荐直接写业务侧维护的 `logVersion` 数字，如 `42`
+- 推荐把 `logVersion` 常量写在代码里，每次 commit 前自增 `1`
 - 程序启动后立刻发 1 条 `warn` 日志，`message` 固定写 `__log_dog_version_warning__`
 - 若带 `version`，这条 `warn` 的 `version` 必须等于当前安装版本；`details` 可补充渠道、git sha、包名
 - AI 取日志时先看最近这条固定 warning，再决定当前拿到的是新安装还是旧安装残留
@@ -82,7 +84,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   -H 'content-type: application/json' \
   -d '{
     "appName": "demo-app",
-    "version": "20260515-120000",
+    "version": 42,
     "timestamp": "20260515-120001",
     "level": "warn",
     "message": "__log_dog_version_warning__",
