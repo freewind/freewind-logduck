@@ -28,7 +28,6 @@ type QueryFormValues = {
   appName?: string;
   level?: LogLevel;
   range?: [Dayjs, Dayjs];
-  limit?: number;
   maxFieldLength?: number;
 };
 
@@ -47,9 +46,6 @@ const buildQueryString = (query: LogQuery) => {
   if (query.to) {
     params.set('to', query.to);
   }
-  if (query.limit) {
-    params.set('limit', `${query.limit}`);
-  }
   if (query.maxFieldLength !== undefined) {
     params.set('maxFieldLength', `${query.maxFieldLength}`);
   }
@@ -62,7 +58,6 @@ const toQuery = (values: QueryFormValues): LogQuery => ({
   level: values.level,
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
-  limit: values.limit,
   maxFieldLength: values.maxFieldLength ?? 300,
 });
 
@@ -289,9 +284,6 @@ export const App: FC = () => {
                     </Form.Item>
                     <Form.Item label="时间范围" name="range">
                       <RangePicker showTime />
-                    </Form.Item>
-                    <Form.Item label="条数" name="limit">
-                      <InputNumber min={1} placeholder="全部" style={{ width: 120 }} />
                     </Form.Item>
                     <Form.Item label="字段长" name="maxFieldLength">
                       <InputNumber min={0} placeholder="300" style={{ width: 120 }} />
