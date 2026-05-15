@@ -107,16 +107,7 @@ export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
 
   return [...counts.entries()]
     .map(([version, count]) => ({ version, count }))
-    .sort((left, right) => {
-      const leftTime = parseLogTime(left.version);
-      const rightTime = parseLogTime(right.version);
-
-      if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
-        return rightTime - leftTime;
-      }
-
-      return right.version.localeCompare(left.version);
-    });
+    .sort((left, right) => right.version.localeCompare(left.version));
 };
 
 export const deleteLogById = (id: string) => {

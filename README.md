@@ -60,7 +60,7 @@ curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&l
 - `total`：命中总数
 - `apps`：当前命中结果里各 `appName` 计数，可继续当 filter
 - `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
-- `versions` 排序：新版本在前，旧版本在后；若不是时间戳格式，则按字符串倒序
+- `versions` 排序：按 `version` 时间戳字符串倒序，新版本在前
 
 ### 版本哨兵约定
 
