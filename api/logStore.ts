@@ -4,6 +4,7 @@ import { LOG_LEVELS, type AppListItem, type LogCreateInput, type LogLevel, type 
 import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
+const MAX_LOGS_PER_APP = 1000;
 
 const byOldest = (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp);
 
@@ -41,6 +42,22 @@ const trimLogFields = (record: LogRecord, maxFieldLength?: number): LogRecord =>
   details: truncateText(record.details, maxFieldLength),
 });
 
+const trimAppLogs = (appName: string) => {
+  let count = 0;
+
+  for (let index = 0; index < logs.length; index += 1) {
+    if (logs[index]?.appName !== appName) {
+      continue;
+    }
+
+    count += 1;
+    if (count > MAX_LOGS_PER_APP) {
+      logs.splice(index, 1);
+      index -= 1;
+    }
+  }
+};
+
 export const insertLog = (input: LogCreateInput) => {
   const record: LogRecord = {
     ...input,
@@ -48,6 +65,7 @@ export const insertLog = (input: LogCreateInput) => {
   };
 
   logs.unshift(record);
+  trimAppLogs(record.appName);
 
   return record;
 };
@@ -89,7 +107,16 @@ export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
 
   return [...counts.entries()]
     .map(([version, count]) => ({ version, count }))
-    .sort((left, right) => right.count - left.count || left.version.localeCompare(right.version));
+    .sort((left, right) => {
+      const leftTime = parseLogTime(left.version);
+      const rightTime = parseLogTime(right.version);
+
+      if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+        return rightTime - leftTime;
+      }
+
+      return right.version.localeCompare(left.version);
+    });
 };
 
 export const deleteLogById = (id: string) => {

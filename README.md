@@ -2,6 +2,11 @@
 
 内存日志站。前端走 Vite，API 独立进程，靠 Vite proxy 暴露单端口。
 
+内存保留策略：
+
+- 每个 `appName` 最多保留最新 `1000` 条日志
+- 超出后自动丢最旧的，同 app 内不区分 `level`
+
 ## 运行
 
 ```bash
@@ -55,6 +60,7 @@ curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&l
 - `total`：命中总数
 - `apps`：当前命中结果里各 `appName` 计数，可继续当 filter
 - `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
+- `versions` 排序：新版本在前，旧版本在后；若不是时间戳格式，则按字符串倒序
 
 ### 版本哨兵约定
 
