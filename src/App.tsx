@@ -22,6 +22,7 @@ import { formatLogTime, parseLogTime } from '../shared/logTime';
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
 const levelOptions = LOG_LEVELS.map((level) => ({ label: level.toUpperCase(), value: level }));
+const DEFAULT_QUERY: LogQuery = { maxFieldLength: 300 };
 
 type QueryFormValues = {
   appName?: string;
@@ -183,10 +184,9 @@ export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState<LogQuery>({ maxFieldLength: 300 });
+  const [query, setQuery] = useState<LogQuery>(DEFAULT_QUERY);
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
-  const watchedValues = Form.useWatch([], form);
   const latestLoadIdRef = useRef(0);
 
   const load = async (nextQuery: LogQuery) => {
@@ -214,11 +214,11 @@ export const App: FC = () => {
   };
 
   useEffect(() => {
-    void load(toQuery(watchedValues ?? {}));
-  }, [watchedValues]);
+    void load(DEFAULT_QUERY);
+  }, []);
 
-  const handleSearch = () => {
-    void load(toQuery(form.getFieldsValue()));
+  const handleSearch = (values: QueryFormValues) => {
+    void load(toQuery(values));
   };
 
   const handleReset = () => {
@@ -262,7 +262,7 @@ export const App: FC = () => {
             header={
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Typography.Text>日志 {data.total} 条</Typography.Text>
-                <Form form={form} initialValues={{ maxFieldLength: 300 }} layout="inline">
+                <Form form={form} initialValues={DEFAULT_QUERY} layout="inline" onFinish={handleSearch}>
                   <Space wrap size={12}>
                     <Form.Item label="应用名" name="appName">
                       <Select
@@ -289,8 +289,8 @@ export const App: FC = () => {
                     <Form.Item label="字段长" name="maxFieldLength">
                       <InputNumber min={0} placeholder="300" style={{ width: 120 }} />
                     </Form.Item>
-                    <Button onClick={handleSearch} type="primary">
-                      搜索
+                    <Button htmlType="submit" type="primary">
+                      查询
                     </Button>
                     <Button onClick={handleReset}>重置</Button>
                     <Popconfirm title={`删除当前表格中的全部结果？共 ${data.total} 条`} onConfirm={() => void handleDeleteMany()}>
