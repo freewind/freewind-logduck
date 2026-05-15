@@ -85,26 +85,6 @@ const fetchLogs = async (query: LogQuery) => {
   return (await response.json()) as LogListResponse;
 };
 
-const fetchApps = async () => {
-  const response = await fetch('/api/apps');
-
-  if (!response.ok) {
-    throw new Error(`load_apps_failed:${response.status}`);
-  }
-
-  return ((await response.json()) as { apps: AppListItem[] }).apps;
-};
-
-const fetchVersions = async () => {
-  const response = await fetch('/api/versions');
-
-  if (!response.ok) {
-    throw new Error(`load_versions_failed:${response.status}`);
-  }
-
-  return ((await response.json()) as { versions: VersionListItem[] }).versions;
-};
-
 const deleteOne = async (id: string) => {
   const response = await fetch(`/api/logs/${id}`, { method: 'DELETE' });
 
@@ -221,13 +201,13 @@ export const App: FC = () => {
     setLoading(true);
 
     try {
-      const [logs, apps, versions] = await Promise.all([fetchLogs(nextQuery), fetchApps(), fetchVersions()]);
+      const logs = await fetchLogs(nextQuery);
       if (loadId !== latestLoadIdRef.current) {
         return;
       }
       setData(logs);
-      setAppOptions(apps);
-      setVersionOptions(versions);
+      setAppOptions(logs.apps);
+      setVersionOptions(logs.versions);
       setQuery(nextQuery);
     } catch (error) {
       if (loadId === latestLoadIdRef.current) {

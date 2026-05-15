@@ -42,6 +42,11 @@ const trimLogFields = (record: LogRecord, maxFieldLength?: number): LogRecord =>
   details: truncateText(record.details, maxFieldLength),
 });
 
+const toVersionList = (counts: Map<string, number>): VersionListItem[] =>
+  [...counts.entries()]
+    .map(([version, count]) => ({ version, count }))
+    .sort((left, right) => right.version.localeCompare(left.version));
+
 const trimAppLogs = (appName: string) => {
   let count = 0;
 
@@ -83,14 +88,25 @@ export const queryLogs = (query: LogQuery) => {
 };
 
 export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
-  const counts = new Map<string, number>();
+  const summary = new Map<string, { count: number; versions: Map<string, number> }>();
 
   for (const record of source) {
-    counts.set(record.appName, (counts.get(record.appName) ?? 0) + 1);
+    const current = summary.get(record.appName) ?? { count: 0, versions: new Map<string, number>() };
+    current.count += 1;
+
+    if (record.version) {
+      current.versions.set(record.version, (current.versions.get(record.version) ?? 0) + 1);
+    }
+
+    summary.set(record.appName, current);
   }
 
-  return [...counts.entries()]
-    .map(([appName, count]) => ({ appName, count }))
+  return [...summary.entries()]
+    .map(([appName, item]) => ({
+      appName,
+      count: item.count,
+      versions: toVersionList(item.versions),
+    }))
     .sort((left, right) => right.count - left.count || left.appName.localeCompare(right.appName));
 };
 
@@ -105,9 +121,7 @@ export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
     counts.set(record.version, (counts.get(record.version) ?? 0) + 1);
   }
 
-  return [...counts.entries()]
-    .map(([version, count]) => ({ version, count }))
-    .sort((left, right) => right.version.localeCompare(left.version));
+  return toVersionList(counts);
 };
 
 export const deleteLogById = (id: string) => {

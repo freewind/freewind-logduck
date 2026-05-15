@@ -58,7 +58,10 @@ curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&l
 
 - `logs`：命中日志
 - `total`：命中总数
-- `apps`：当前命中结果里各 `appName` 计数，可继续当 filter
+- `apps`：当前命中结果里的 app 汇总
+- 每个 `app` 项含 `appName` `count` `versions`
+- 每个 `versions` 项含 `version` `count`
+- AI 可直接读 `apps[].versions[]` 决定该拿哪个 app / version，不必再额外访问 `/api/apps`
 - `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
 - `versions` 排序：按 `version` 时间戳字符串倒序，新版本在前
 

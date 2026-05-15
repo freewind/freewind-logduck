@@ -32,7 +32,7 @@ export type LogQuery = {
 };
 
 export type LogListResponse = {
-  apps: Array<{ appName: string; count: number }>;
+  apps: AppListItem[];
   versions: VersionListItem[];
   logs: LogRecord[];
   total: number;
@@ -41,6 +41,7 @@ export type LogListResponse = {
 export type AppListItem = {
   appName: string;
   count: number;
+  versions: VersionListItem[];
 };
 
 export type VersionListItem = {
