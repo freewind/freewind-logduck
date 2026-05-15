@@ -20,6 +20,9 @@ const matchVersion = (record: LogRecord, version?: number) => version === undefi
 const matchVersionGte = (record: LogRecord, versionGte?: number) =>
   versionGte === undefined || (record.version !== undefined && record.version >= versionGte);
 
+const includesKeyword = (value: string | undefined, keyword?: string) =>
+  keyword === undefined || value?.toLowerCase().includes(keyword.toLowerCase()) === true;
+
 const matchFrom = (record: LogRecord, from?: string) => !from || parseLogTime(record.timestamp) >= parseLogTime(from);
 
 const matchTo = (record: LogRecord, to?: string) => !to || parseLogTime(record.timestamp) <= parseLogTime(to);
@@ -28,6 +31,8 @@ const matchQuery = (record: LogRecord, query: LogQuery) =>
   matchApp(record, query.appName) &&
   matchVersion(record, query.version) &&
   matchVersionGte(record, query.versionGte) &&
+  includesKeyword(record.message, query.messageKeyword) &&
+  includesKeyword(record.details, query.detailsKeyword) &&
   matchLevel(record, query.level) &&
   matchFrom(record, query.from) &&
   matchTo(record, query.to);

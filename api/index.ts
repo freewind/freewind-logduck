@@ -91,6 +91,8 @@ const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   appName: parseOptionalText(query.appName),
   version: parseOptionalNumber(query.version),
   versionGte: parseOptionalNumber(query.versionGte),
+  messageKeyword: parseOptionalText(query.messageKeyword),
+  detailsKeyword: parseOptionalText(query.detailsKeyword),
   from: parseTimestamp(query.from),
   to: parseTimestamp(query.to),
   level: parseLevel(query.level),

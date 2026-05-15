@@ -46,13 +46,15 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
 - `version`：可选，按版本精确过滤
 - `versionGte`：可选，按版本下限过滤，命中 `version >= versionGte`
+- `messageKeyword`：可选，按 `message` include 过滤
+- `detailsKeyword`：可选，按 `details` include 过滤
 - `limit`：可选，仅 API 查询生效；网页默认全量读取
 - `level`：阈值过滤，`debug/info/warn/error` 分别表示“该级别及以上”
 - `maxFieldLength`：单字段最大字符数，默认 `300`，传 `0` 表示完整返回
 - 返回顺序：旧的在前；网页 table 默认反向显示，最新在前
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&versionGte=40&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&versionGte=40&messageKeyword=login&detailsKeyword=timeout&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
 ```
 
 返回：

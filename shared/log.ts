@@ -25,6 +25,8 @@ export type LogQuery = {
   appName?: string;
   version?: number;
   versionGte?: number;
+  messageKeyword?: string;
+  detailsKeyword?: string;
   from?: string;
   to?: string;
   level?: LogLevel;

@@ -4,6 +4,7 @@ import {
   DatePicker,
   Descriptions,
   Form,
+  Input,
   InputNumber,
   Layout,
   message,
@@ -36,6 +37,8 @@ type QueryFormValues = {
   appName?: string;
   version?: number;
   versionGte?: number;
+  messageKeyword?: string;
+  detailsKeyword?: string;
   level?: LogLevel;
   range?: [Dayjs, Dayjs];
   maxFieldLength?: number;
@@ -52,6 +55,12 @@ const buildQueryString = (query: LogQuery) => {
   }
   if (query.versionGte !== undefined) {
     params.set('versionGte', `${query.versionGte}`);
+  }
+  if (query.messageKeyword) {
+    params.set('messageKeyword', query.messageKeyword);
+  }
+  if (query.detailsKeyword) {
+    params.set('detailsKeyword', query.detailsKeyword);
   }
   if (query.level) {
     params.set('level', query.level);
@@ -73,6 +82,8 @@ const toQuery = (values: QueryFormValues): LogQuery => ({
   appName: values.appName?.trim() || undefined,
   version: values.version,
   versionGte: values.versionGte,
+  messageKeyword: values.messageKeyword?.trim() || undefined,
+  detailsKeyword: values.detailsKeyword?.trim() || undefined,
   level: values.level,
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
@@ -304,6 +315,12 @@ export const App: FC = () => {
                     </Form.Item>
                     <Form.Item label="版本>=" name="versionGte">
                       <InputNumber placeholder="最小版本" style={{ width: 160 }} />
+                    </Form.Item>
+                    <Form.Item label="消息含" name="messageKeyword">
+                      <Input placeholder="message keyword" style={{ width: 180 }} />
+                    </Form.Item>
+                    <Form.Item label="详情含" name="detailsKeyword">
+                      <Input placeholder="details keyword" style={{ width: 180 }} />
                     </Form.Item>
                     <Form.Item label="级别" name="level">
                       <Select allowClear options={levelOptions} style={{ width: 120 }} />
