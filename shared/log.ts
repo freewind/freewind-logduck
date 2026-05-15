@@ -5,7 +5,7 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 export type LogRecord = {
   id: string;
   appName: string;
-  version: string;
+  version?: string;
   timestamp: string;
   level: LogLevel;
   message: string;
@@ -14,7 +14,7 @@ export type LogRecord = {
 
 export type LogCreateInput = {
   appName: string;
-  version: string;
+  version?: string;
   timestamp: string;
   level: LogLevel;
   message: string;
