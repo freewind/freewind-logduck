@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { AppListItem, LogCreateInput, LogLevel, LogQuery, LogRecord } from '../shared/log';
+import type { AppListItem, LogCreateInput, LogLevel, LogQuery, LogRecord, VersionListItem } from '../shared/log';
 import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
@@ -11,12 +11,15 @@ const matchLevel = (record: LogRecord, level?: LogLevel) => !level || record.lev
 
 const matchApp = (record: LogRecord, appName?: string) => !appName || record.appName === appName;
 
+const matchVersion = (record: LogRecord, version?: string) => !version || record.version === version;
+
 const matchFrom = (record: LogRecord, from?: string) => !from || parseLogTime(record.timestamp) >= parseLogTime(from);
 
 const matchTo = (record: LogRecord, to?: string) => !to || parseLogTime(record.timestamp) <= parseLogTime(to);
 
 const matchQuery = (record: LogRecord, query: LogQuery) =>
   matchApp(record, query.appName) &&
+  matchVersion(record, query.version) &&
   matchLevel(record, query.level) &&
   matchFrom(record, query.from) &&
   matchTo(record, query.to);
@@ -67,6 +70,22 @@ export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
   return [...counts.entries()]
     .map(([appName, count]) => ({ appName, count }))
     .sort((left, right) => right.count - left.count || left.appName.localeCompare(right.appName));
+};
+
+export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
+  const counts = new Map<string, number>();
+
+  for (const record of source) {
+    if (!record.version) {
+      continue;
+    }
+
+    counts.set(record.version, (counts.get(record.version) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([version, count]) => ({ version, count }))
+    .sort((left, right) => right.count - left.count || left.version.localeCompare(right.version));
 };
 
 export const deleteLogById = (id: string) => {

@@ -2,7 +2,7 @@ import express from 'express';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
 import { isLogTime } from '../shared/logTime';
-import { deleteLogById, deleteLogs, insertLog, listApps, queryLogs } from './logStore';
+import { deleteLogById, deleteLogs, insertLog, listApps, listVersions, queryLogs } from './logStore';
 
 const PORT = Number.parseInt(process.env.LOG_DOG_PORT ?? '52743', 10);
 const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
@@ -51,6 +51,7 @@ const parseMaxFieldLength = (value: unknown) => {
 
 const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   appName: parseOptionalText(query.appName),
+  version: parseOptionalText(query.version),
   from: parseTimestamp(query.from),
   to: parseTimestamp(query.to),
   level: parseLevel(query.level),
@@ -86,6 +87,10 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/apps', (_req, res) => {
   res.json({ apps: listApps() });
+});
+
+app.get('/api/versions', (_req, res) => {
+  res.json({ versions: listVersions() });
 });
 
 app.post('/api/logs', (req, res) => {

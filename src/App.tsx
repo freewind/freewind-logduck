@@ -16,7 +16,15 @@ import {
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 
-import { LOG_LEVELS, type AppListItem, type LogLevel, type LogListResponse, type LogQuery, type LogRecord } from '../shared/log';
+import {
+  LOG_LEVELS,
+  type AppListItem,
+  type LogLevel,
+  type LogListResponse,
+  type LogQuery,
+  type LogRecord,
+  type VersionListItem,
+} from '../shared/log';
 import { formatLogTime, parseLogTime } from '../shared/logTime';
 
 const { Content, Header } = Layout;
@@ -26,6 +34,7 @@ const DEFAULT_QUERY: LogQuery = { maxFieldLength: 300 };
 
 type QueryFormValues = {
   appName?: string;
+  version?: string;
   level?: LogLevel;
   range?: [Dayjs, Dayjs];
   maxFieldLength?: number;
@@ -36,6 +45,9 @@ const buildQueryString = (query: LogQuery) => {
 
   if (query.appName) {
     params.set('appName', query.appName);
+  }
+  if (query.version) {
+    params.set('version', query.version);
   }
   if (query.level) {
     params.set('level', query.level);
@@ -55,6 +67,7 @@ const buildQueryString = (query: LogQuery) => {
 
 const toQuery = (values: QueryFormValues): LogQuery => ({
   appName: values.appName?.trim() || undefined,
+  version: values.version?.trim() || undefined,
   level: values.level,
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
@@ -80,6 +93,16 @@ const fetchApps = async () => {
   }
 
   return ((await response.json()) as { apps: AppListItem[] }).apps;
+};
+
+const fetchVersions = async () => {
+  const response = await fetch('/api/versions');
+
+  if (!response.ok) {
+    throw new Error(`load_versions_failed:${response.status}`);
+  }
+
+  return ((await response.json()) as { versions: VersionListItem[] }).versions;
 };
 
 const deleteOne = async (id: string) => {
@@ -189,6 +212,7 @@ export const App: FC = () => {
   const [query, setQuery] = useState<LogQuery>(DEFAULT_QUERY);
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
+  const [versionOptions, setVersionOptions] = useState<VersionListItem[]>([]);
   const latestLoadIdRef = useRef(0);
 
   const load = async (nextQuery: LogQuery) => {
@@ -197,12 +221,13 @@ export const App: FC = () => {
     setLoading(true);
 
     try {
-      const [logs, apps] = await Promise.all([fetchLogs(nextQuery), fetchApps()]);
+      const [logs, apps, versions] = await Promise.all([fetchLogs(nextQuery), fetchApps(), fetchVersions()]);
       if (loadId !== latestLoadIdRef.current) {
         return;
       }
       setData(logs);
       setAppOptions(apps);
+      setVersionOptions(versions);
       setQuery(nextQuery);
     } catch (error) {
       if (loadId === latestLoadIdRef.current) {
@@ -276,6 +301,19 @@ export const App: FC = () => {
                         options={appOptions.map((item) => ({
                           label: `${item.appName} (${item.count})`,
                           value: item.appName,
+                        }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label="版本" name="version">
+                      <Select
+                        allowClear
+                        showSearch
+                        placeholder="选择版本"
+                        optionFilterProp="label"
+                        style={{ width: 220 }}
+                        options={versionOptions.map((item) => ({
+                          label: `${item.version} (${item.count})`,
+                          value: item.version,
                         }))}
                       />
                     </Form.Item>

@@ -23,6 +23,7 @@ export type LogCreateInput = {
 
 export type LogQuery = {
   appName?: string;
+  version?: string;
   from?: string;
   to?: string;
   level?: LogLevel;
@@ -38,5 +39,10 @@ export type LogListResponse = {
 
 export type AppListItem = {
   appName: string;
+  count: number;
+};
+
+export type VersionListItem = {
+  version: string;
   count: number;
 };
