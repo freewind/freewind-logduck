@@ -60,17 +60,19 @@ const parseQuery = (query: Record<string, unknown>): LogQuery => ({
 
 const toCreateInput = (body: Record<string, unknown>): LogCreateInput | null => {
   const appName = parseText(body.appName);
+  const version = parseText(body.version);
   const timestamp = parseTimestamp(body.timestamp);
   const message = parseText(body.message);
   const level = parseLevel(body.level);
   const details = parseOptionalText(body.details);
 
-  if (!appName || !timestamp || !message || !level) {
+  if (!appName || !version || !timestamp || !message || !level) {
     return null;
   }
 
   return {
     appName,
+    version,
     timestamp,
     level,
     message,
@@ -92,7 +94,7 @@ app.post('/api/logs', (req, res) => {
   if (!input) {
     res.status(400).json({
       error: 'invalid_payload',
-      required: ['appName', 'timestamp', 'level', 'message'],
+      required: ['appName', 'version', 'timestamp', 'level', 'message'],
     });
     return;
   }

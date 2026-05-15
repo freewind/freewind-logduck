@@ -138,6 +138,11 @@ const LogTable: FC<{
         width: 180,
       },
       {
+        title: '版本',
+        dataIndex: 'version',
+        width: 180,
+      },
+      {
         title: '时间',
         dataIndex: 'timestamp',
         render: (value: string) => value,
@@ -172,6 +177,7 @@ const LogTable: FC<{
       expandedRowRender: (record) => (
         <Descriptions column={1} size="small">
           <Descriptions.Item label="应用">{record.appName}</Descriptions.Item>
+          <Descriptions.Item label="版本">{record.version}</Descriptions.Item>
           <Descriptions.Item label="详细">{record.details || '-'}</Descriptions.Item>
           <Descriptions.Item label="ID">{record.id}</Descriptions.Item>
         </Descriptions>
