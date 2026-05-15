@@ -11,6 +11,21 @@ const app = express();
 
 app.use(express.json({ limit: '2mb' }));
 
+const requestPayload = (req: express.Request) => ({
+  query: req.query,
+  body: req.body,
+});
+
+app.use((req, _res, next) => {
+  console.log('[Log Dog access]', {
+    method: req.method,
+    url: req.originalUrl,
+    payload: requestPayload(req),
+  });
+
+  next();
+});
+
 const parseLevel = (value: unknown): LogLevel | undefined => {
   if (typeof value !== 'string') {
     return undefined;
