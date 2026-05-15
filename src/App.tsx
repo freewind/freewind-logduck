@@ -62,7 +62,7 @@ const toQuery = (values: QueryFormValues): LogQuery => ({
   from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
   to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
   limit: values.limit,
-  maxFieldLength: values.maxFieldLength ?? 100,
+  maxFieldLength: values.maxFieldLength ?? 300,
 });
 
 const fetchLogs = async (query: LogQuery) => {
@@ -183,7 +183,7 @@ export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState<LogQuery>({ maxFieldLength: 100 });
+  const [query, setQuery] = useState<LogQuery>({ maxFieldLength: 300 });
   const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
   const watchedValues = Form.useWatch([], form);
@@ -262,7 +262,7 @@ export const App: FC = () => {
             header={
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Typography.Text>日志 {data.total} 条</Typography.Text>
-                <Form form={form} initialValues={{ maxFieldLength: 100 }} layout="inline">
+                <Form form={form} initialValues={{ maxFieldLength: 300 }} layout="inline">
                   <Space wrap size={12}>
                     <Form.Item label="应用名" name="appName">
                       <Select
@@ -287,7 +287,7 @@ export const App: FC = () => {
                       <InputNumber min={1} placeholder="全部" style={{ width: 120 }} />
                     </Form.Item>
                     <Form.Item label="字段长" name="maxFieldLength">
-                      <InputNumber min={0} placeholder="100" style={{ width: 120 }} />
+                      <InputNumber min={0} placeholder="300" style={{ width: 120 }} />
                     </Form.Item>
                     <Button onClick={handleSearch} type="primary">
                       搜索
