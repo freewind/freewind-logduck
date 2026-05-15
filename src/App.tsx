@@ -217,6 +217,10 @@ export const App: FC = () => {
     void load(toQuery(watchedValues ?? {}));
   }, [watchedValues]);
 
+  const handleSearch = () => {
+    void load(toQuery(form.getFieldsValue()));
+  };
+
   const handleReset = () => {
     form.resetFields();
   };
@@ -285,6 +289,9 @@ export const App: FC = () => {
                     <Form.Item label="字段长" name="maxFieldLength">
                       <InputNumber min={0} placeholder="100" style={{ width: 120 }} />
                     </Form.Item>
+                    <Button onClick={handleSearch} type="primary">
+                      搜索
+                    </Button>
                     <Button onClick={handleReset}>重置</Button>
                     <Popconfirm title={`删除当前表格中的全部结果？共 ${data.total} 条`} onConfirm={() => void handleDeleteMany()}>
                       <Button danger>删除筛选结果</Button>
