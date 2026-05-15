@@ -11,17 +11,27 @@ const app = express();
 
 app.use(express.json({ limit: '2mb' }));
 
-const requestPayload = (req: express.Request) => ({
-  query: req.query,
-  body: req.body,
-});
+const requestPayload = (req: express.Request): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {};
+
+  if (Object.keys(req.query).length) {
+    payload.query = req.query;
+  }
+
+  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length) {
+    Object.assign(payload, req.body);
+  }
+
+  return payload;
+};
+
+const requestIp = (req: express.Request) => {
+  const forwardedFor = req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  return forwardedFor || req.ip || req.socket.remoteAddress || 'unknown';
+};
 
 app.use((req, _res, next) => {
-  console.log('[Log Dog access]', {
-    method: req.method,
-    url: req.originalUrl,
-    payload: requestPayload(req),
-  });
+  console.log(`${req.method} ${req.originalUrl} from ${requestIp(req)} ${JSON.stringify(requestPayload(req))}`);
 
   next();
 });
