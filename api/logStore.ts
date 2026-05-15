@@ -1,13 +1,16 @@
 import { randomUUID } from 'node:crypto';
 
-import type { AppListItem, LogCreateInput, LogLevel, LogQuery, LogRecord, VersionListItem } from '../shared/log';
+import { LOG_LEVELS, type AppListItem, type LogCreateInput, type LogLevel, type LogQuery, type LogRecord, type VersionListItem } from '../shared/log';
 import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
 
 const byOldest = (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp);
 
-const matchLevel = (record: LogRecord, level?: LogLevel) => !level || record.level === level;
+const levelRank = new Map(LOG_LEVELS.map((level, index) => [level, index]));
+
+const matchLevel = (record: LogRecord, level?: LogLevel) =>
+  !level || (levelRank.get(record.level) ?? -1) >= (levelRank.get(level) ?? -1);
 
 const matchApp = (record: LogRecord, appName?: string) => !appName || record.appName === appName;
 

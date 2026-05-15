@@ -31,7 +31,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 
 `version` 可选，类型 `string`。建议直接用安装包/构建产物时间戳，格式同 `timestamp`，便于快速判断日志新旧。
 `timestamp` 使用本地时间格式 `YYYYMMDD-HHmmss`。
-`level` 支持：`debug | info | warn | error`
+`level` 支持：`debug | info | warn | error`。查询时按阈值语义，`info` 表示 `info/warn/error`，其余同理。
 
 ### 查日志
 
@@ -41,6 +41,7 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
 - `version`：可选，按版本精确过滤
 - `limit`：可选，仅 API 查询生效；网页默认全量读取
+- `level`：阈值过滤，`debug/info/warn/error` 分别表示“该级别及以上”
 - `maxFieldLength`：单字段最大字符数，默认 `300`，传 `0` 表示完整返回
 - 返回顺序：旧的在前；网页 table 默认反向显示，最新在前
 
