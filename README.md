@@ -49,6 +49,13 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=20260515-120000&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
 ```
 
+返回：
+
+- `logs`：命中日志
+- `total`：命中总数
+- `apps`：当前命中结果里各 `appName` 计数，可继续当 filter
+- `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
+
 ### 版本哨兵约定
 
 为避免旧安装/旧包日志混进来造成误判，发送端接入时统一加这条约定：

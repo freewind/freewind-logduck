@@ -210,7 +210,7 @@ export const App: FC = () => {
   const [form] = Form.useForm<QueryFormValues>();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState<LogQuery>(DEFAULT_QUERY);
-  const [data, setData] = useState<LogListResponse>({ apps: [], logs: [], total: 0 });
+  const [data, setData] = useState<LogListResponse>({ apps: [], versions: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
   const [versionOptions, setVersionOptions] = useState<VersionListItem[]>([]);
   const latestLoadIdRef = useRef(0);

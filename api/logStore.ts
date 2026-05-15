@@ -60,6 +60,7 @@ export const queryLogs = (query: LogQuery) => {
     logs: limited.map((record) => trimLogFields(record, query.maxFieldLength)),
     total: matched.length,
     apps: listApps(matched),
+    versions: listVersions(matched),
   };
 };
 
