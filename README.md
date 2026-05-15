@@ -42,6 +42,8 @@ curl -X POST http://127.0.0.1:52742/api/logs \
 
 时间过滤参数：
 
+- 网页 table 列名、展开详情、filter label 直接使用原始 key 名：`appName` `version` `versionGte` `messageKeyword` `detailsKeyword` `level` `range` `maxFieldLength`
+
 - `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
 - `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
 - `version`：可选，按版本精确过滤
