@@ -20,6 +20,7 @@ import type { Dayjs } from 'dayjs';
 import {
   LOG_LEVELS,
   type AppListItem,
+  type LevelListItem,
   type LogLevel,
   type LogListResponse,
   type LogQuery,
@@ -30,7 +31,6 @@ import { formatLogTime, parseLogTime } from '../shared/logTime';
 
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
-const levelOptions = LOG_LEVELS.map((level) => ({ label: level.toUpperCase(), value: level }));
 const DEFAULT_QUERY: LogQuery = { maxFieldLength: 300 };
 
 type QueryFormValues = {
@@ -204,12 +204,25 @@ const LogTable: FC<{
 export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
+  const selectedAppName = Form.useWatch('appName', form);
+  const selectedVersion = Form.useWatch('version', form);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState<LogQuery>(DEFAULT_QUERY);
-  const [data, setData] = useState<LogListResponse>({ apps: [], versions: [], logs: [], total: 0 });
+  const [data, setData] = useState<LogListResponse>({ apps: [], versions: [], levels: [], logs: [], total: 0 });
   const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
-  const [versionOptions, setVersionOptions] = useState<VersionListItem[]>([]);
   const latestLoadIdRef = useRef(0);
+
+  const selectedApp = appOptions.find((item) => item.appName === selectedAppName);
+  const selectedVersionItem =
+    selectedVersion === undefined
+      ? undefined
+      : (selectedApp?.versions ?? data.versions).find((item) => item.version === selectedVersion);
+  const versionOptions = selectedApp?.versions ?? data.versions;
+  const levelItems: LevelListItem[] = selectedVersionItem?.levels ?? selectedApp?.levels ?? data.levels;
+  const levelOptions = levelItems.map((item) => ({
+    label: `${item.level.toUpperCase()} (${item.count})`,
+    value: item.level,
+  }));
 
   const load = async (nextQuery: LogQuery) => {
     const loadId = latestLoadIdRef.current + 1;
@@ -223,7 +236,6 @@ export const App: FC = () => {
       }
       setData(logs);
       setAppOptions(logs.apps);
-      setVersionOptions(logs.versions);
       setQuery(nextQuery);
     } catch (error) {
       if (loadId === latestLoadIdRef.current) {
@@ -239,6 +251,27 @@ export const App: FC = () => {
   useEffect(() => {
     void load(DEFAULT_QUERY);
   }, []);
+
+  useEffect(() => {
+    if (selectedVersion === undefined) {
+      return;
+    }
+
+    if (!versionOptions.some((item) => item.version === selectedVersion)) {
+      form.setFieldValue('version', undefined);
+    }
+  }, [form, selectedVersion, versionOptions]);
+
+  useEffect(() => {
+    const currentLevel = form.getFieldValue('level') as LogLevel | undefined;
+    if (currentLevel === undefined) {
+      return;
+    }
+
+    if (!levelItems.some((item) => item.level === currentLevel)) {
+      form.setFieldValue('level', undefined);
+    }
+  }, [form, levelItems]);
 
   const handleSearch = (values: QueryFormValues) => {
     void load(toQuery(values));

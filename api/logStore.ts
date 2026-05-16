@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
-import { LOG_LEVELS, type AppListItem, type LogCreateInput, type LogLevel, type LogQuery, type LogRecord, type VersionListItem } from '../shared/log';
+import {
+  LOG_LEVELS,
+  type AppListItem,
+  type LevelListItem,
+  type LogCreateInput,
+  type LogLevel,
+  type LogQuery,
+  type LogRecord,
+  type VersionListItem,
+} from '../shared/log';
 import { parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
@@ -51,11 +60,21 @@ const trimLogFields = (record: LogRecord, maxFieldLength?: number): LogRecord =>
   details: truncateText(record.details, maxFieldLength),
 });
 
-const toVersionList = (counts: Map<string, number>): VersionListItem[] =>
-  [...counts.entries()]
-    .map(([version, count]) => ({ version: Number(version), count }))
+const toLevelList = (counts: Map<LogLevel, number>): LevelListItem[] =>
+  LOG_LEVELS
+    .map((level) => ({ level, count: counts.get(level) ?? 0 }))
+    .filter((item) => item.count > 0)
+    .sort((left, right) => (levelRank.get(right.level) ?? -1) - (levelRank.get(left.level) ?? -1));
+
+const toVersionList = (summary: Map<string, { count: number; levels: Map<LogLevel, number> }>): VersionListItem[] =>
+  [...summary.entries()]
+    .map(([version, item]) => ({
+      version: Number(version),
+      count: item.count,
+      levels: toLevelList(item.levels),
+    }))
     .sort((left, right) => right.version - left.version);
- 
+
 
 const trimAppLogs = (appName: string) => {
   let count = 0;
@@ -94,19 +113,37 @@ export const queryLogs = (query: LogQuery) => {
     total: matched.length,
     apps: listApps(matched),
     versions: listVersions(matched),
+    levels: listLevels(matched),
   };
 };
 
 export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
-  const summary = new Map<string, { count: number; versions: Map<string, number> }>();
+  const summary = new Map<
+    string,
+    {
+      count: number;
+      levels: Map<LogLevel, number>;
+      versions: Map<string, { count: number; levels: Map<LogLevel, number> }>;
+    }
+  >();
 
   for (const record of source) {
-    const current = summary.get(record.appName) ?? { count: 0, versions: new Map<string, number>() };
+    const current =
+      summary.get(record.appName) ??
+      {
+        count: 0,
+        levels: new Map<LogLevel, number>(),
+        versions: new Map<string, { count: number; levels: Map<LogLevel, number> }>(),
+      };
     current.count += 1;
+    current.levels.set(record.level, (current.levels.get(record.level) ?? 0) + 1);
 
     if (record.version !== undefined) {
       const versionKey = `${record.version}`;
-      current.versions.set(versionKey, (current.versions.get(versionKey) ?? 0) + 1);
+      const versionSummary = current.versions.get(versionKey) ?? { count: 0, levels: new Map<LogLevel, number>() };
+      versionSummary.count += 1;
+      versionSummary.levels.set(record.level, (versionSummary.levels.get(record.level) ?? 0) + 1);
+      current.versions.set(versionKey, versionSummary);
     }
 
     summary.set(record.appName, current);
@@ -117,12 +154,13 @@ export const listApps = (source: LogRecord[] = logs): AppListItem[] => {
       appName,
       count: item.count,
       versions: toVersionList(item.versions),
+      levels: toLevelList(item.levels),
     }))
     .sort((left, right) => right.count - left.count || left.appName.localeCompare(right.appName));
 };
 
 export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
-  const counts = new Map<string, number>();
+  const summary = new Map<string, { count: number; levels: Map<LogLevel, number> }>();
 
   for (const record of source) {
     if (record.version === undefined) {
@@ -130,10 +168,23 @@ export const listVersions = (source: LogRecord[] = logs): VersionListItem[] => {
     }
 
     const versionKey = `${record.version}`;
-    counts.set(versionKey, (counts.get(versionKey) ?? 0) + 1);
+    const current = summary.get(versionKey) ?? { count: 0, levels: new Map<LogLevel, number>() };
+    current.count += 1;
+    current.levels.set(record.level, (current.levels.get(record.level) ?? 0) + 1);
+    summary.set(versionKey, current);
   }
 
-  return toVersionList(counts);
+  return toVersionList(summary);
+};
+
+export const listLevels = (source: LogRecord[] = logs): LevelListItem[] => {
+  const counts = new Map<LogLevel, number>();
+
+  for (const record of source) {
+    counts.set(record.level, (counts.get(record.level) ?? 0) + 1);
+  }
+
+  return toLevelList(counts);
 };
 
 export const deleteLogById = (id: string) => {

@@ -37,6 +37,7 @@ export type LogQuery = {
 export type LogListResponse = {
   apps: AppListItem[];
   versions: VersionListItem[];
+  levels: LevelListItem[];
   logs: LogRecord[];
   total: number;
 };
@@ -45,9 +46,16 @@ export type AppListItem = {
   appName: string;
   count: number;
   versions: VersionListItem[];
+  levels: LevelListItem[];
 };
 
 export type VersionListItem = {
   version: number;
+  count: number;
+  levels: LevelListItem[];
+};
+
+export type LevelListItem = {
+  level: LogLevel;
   count: number;
 };
