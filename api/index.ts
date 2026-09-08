@@ -2,7 +2,7 @@ import express from 'express';
 
 import { LOG_LEVELS, type LogCreateInput, type LogLevel, type LogQuery } from '../shared/log';
 import { isLogTime } from '../shared/logTime';
-import { deleteLogById, deleteLogs, insertLog, listApps, listVersions, queryLogs } from './logStore';
+import { deleteLogById, deleteLogs, insertLog, listApps, listDates, listVersions, queryLogs } from './logStore';
 
 const PORT = Number.parseInt(process.env.LOG_DOG_PORT ?? '52743', 10);
 const HOST = process.env.LOG_DOG_HOST ?? '127.0.0.1';
@@ -69,13 +69,9 @@ const parseTimestamp = (value: unknown) => {
   return text && isLogTime(text) ? text : '';
 };
 
-const parseLimit = (value: unknown) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    return undefined;
-  }
-
-  const limit = Number.parseInt(value, 10);
-  return Number.isFinite(limit) && limit > 0 ? limit : undefined;
+const parseDate = (value: unknown) => {
+  const text = parseText(value);
+  return /^\d{8}$/.test(text) ? text : undefined;
 };
 
 const parseMaxFieldLength = (value: unknown) => {
@@ -93,10 +89,10 @@ const parseQuery = (query: Record<string, unknown>): LogQuery => ({
   versionGte: parseOptionalNumber(query.versionGte),
   messageKeyword: parseOptionalText(query.messageKeyword),
   detailsKeyword: parseOptionalText(query.detailsKeyword),
+  date: parseDate(query.date),
   from: parseTimestamp(query.from),
   to: parseTimestamp(query.to),
   level: parseLevel(query.level),
-  limit: parseLimit(query.limit),
   maxFieldLength: parseMaxFieldLength(query.maxFieldLength),
 });
 
@@ -133,6 +129,11 @@ app.get('/api/apps', (_req, res) => {
 app.get('/api/versions', (req, res) => {
   const appName = typeof req.query.appName === 'string' ? req.query.appName : '';
   res.json({ versions: listVersions(appName) });
+});
+
+app.get('/api/dates', (req, res) => {
+  const appName = typeof req.query.appName === 'string' ? req.query.appName : '';
+  res.json({ dates: appName ? listDates(appName, parseOptionalNumber(req.query.version)) : [] });
 });
 
 app.post('/api/logs', (req, res) => {
