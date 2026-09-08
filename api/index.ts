@@ -130,8 +130,9 @@ app.get('/api/apps', (_req, res) => {
   res.json({ apps: listApps() });
 });
 
-app.get('/api/versions', (_req, res) => {
-  res.json({ versions: listVersions() });
+app.get('/api/versions', (req, res) => {
+  const appName = typeof req.query.appName === 'string' ? req.query.appName : '';
+  res.json({ versions: listVersions(appName) });
 });
 
 app.post('/api/logs', (req, res) => {
