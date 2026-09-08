@@ -1,11 +1,23 @@
 # Log Dog
 
-内存日志站。前端走 Vite，API 独立进程，靠 Vite proxy 暴露单端口。
+本地持久化日志站。前端走 Vite，API 独立进程，靠 Vite proxy 暴露单端口。日志落盘为 JSONL 文件，按应用/版本/日期分目录存储，文件永不过期。
 
-内存保留策略：
+## 存储结构
 
-- 每个 `appName` 最多保留最新 `1000` 条日志
-- 超出后自动丢最旧的，同 app 内不区分 `level`
+```
+data/
+  <appName>/
+    <version>/                                  # 数字版本号
+      <appName>-<version>-YYYYMMDD.jsonl        # 每天一个文件
+    __none__/                                   # 无 version 的日志归此目录
+      <appName>-__none__-YYYYMMDD.jsonl
+```
+
+- 每条日志一行 JSON（JSONL），写入即 append，**旧文件永不删除**，保留长周期日志供检索/debug
+- 日期取日志 `timestamp`（本地时间 `YYYYMMDD-HHmmss`）的前 8 位；第二天写入新文件
+- 每行含服务端生成的 `_ms`（毫秒时间戳，同进程内单调递增），作为排序字段（日志按 `_ms` 倒序展示）；协议 timestamp 为秒级，同秒多条日志靠 `_ms` 区分先后
+- 网页查询定位到单个文件后**全量读取返回**（无分页）；关键词/level 过滤在服务端扫描完成
+- `data/` 已在 `.gitignore` 中
 
 ## 运行
 
@@ -34,41 +46,67 @@ curl -X POST http://127.0.0.1:52742/api/logs \
   }'
 ```
 
-`version` 可选，类型 `number`。建议业务代码里维护 `logVersion` 数字，每次 commit 前自增 1，再随日志上报，便于 AI 判新旧。
+`version` 可选，类型 `number`，不带则落 `__none__` 目录。建议业务代码里维护 `logVersion` 数字，每次 commit 前自增 1，再随日志上报，便于 AI 判新旧。
 `timestamp` 使用本地时间格式 `YYYYMMDD-HHmmss`。
 `level` 支持：`debug | info | warn | error`。查询时按阈值语义，`info` 表示 `info/warn/error`，其余同理。
 
-### 查日志
+### 查日志（单文件全量）
 
-时间过滤参数：
+定位唯一文件需要 `appName` + `version` + `date`：
 
-- 网页 table 列名、展开详情、filter label 直接使用原始 key 名：`appName` `version` `versionGte` `messageKeyword` `detailsKeyword` `level` `range` `maxFieldLength`
-
-- `from`：起始本地时间，格式 `YYYYMMDD-HHmmss`
-- `to`：结束本地时间，格式 `YYYYMMDD-HHmmss`
-- `version`：可选，按版本精确过滤
-- `versionGte`：可选，按版本下限过滤，命中 `version >= versionGte`
-- `messageKeyword`：可选，按 `message` include 过滤
-- `detailsKeyword`：可选，按 `details` include 过滤
-- `limit`：可选，仅 API 查询生效；网页默认全量读取
-- `level`：阈值过滤，`debug/info/warn/error` 分别表示“该级别及以上”
+- `appName`：必填
+- `version`：可填数字或 `__none__`（无版本）；不传按 `__none__` 处理
+- `date`：可选，格式 `YYYYMMDD`，不传默认今天
+- `level`：阈值过滤，`debug/info/warn/error` 分别表示"该级别及以上"
+- `messageKeyword` / `detailsKeyword`：可选，按 `message` / `details` include 过滤（大小写不敏感）
+- `from` / `to`：可选，本地时间 `YYYYMMDD-HHmmss`
 - `maxFieldLength`：单字段最大字符数，默认 `300`，传 `0` 表示完整返回
-- 返回顺序：旧的在前；网页 table 默认反向显示，最新在前
+- 返回 `{ logs, total }`：该文件内过滤命中的**全量**日志，按 `_ms` 倒序（新在前）；文件不存在返回空结果
 
 ```bash
-curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&versionGte=40&messageKeyword=login&detailsKeyword=timeout&level=error&from=20260514-100000&to=20260514-110000&maxFieldLength=300'
+curl 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&date=20260514&level=error&messageKeyword=login'
 ```
 
-返回：
+### 应用列表
 
-- `logs`：命中日志
-- `total`：命中总数
-- `apps`：当前命中结果里的 app 汇总
-- 每个 `app` 项含 `appName` `count` `versions`
-- 每个 `versions` 项含 `version` `count`
-- AI 可直接读 `apps[].versions[]` 决定该拿哪个 app / version，不必再额外访问 `/api/apps`
-- `versions`：当前命中结果里各 `version` 计数，可继续当 filter；AI 建议先看这里再缩小查询
-- `versions` 排序：按数字倒序，新版本在前
+返回 `data/` 下有日志的应用名（目录扫描，无统计数字）。
+
+```bash
+curl 'http://127.0.0.1:52742/api/apps'
+# {"apps":["demo-app","smoke-app"]}
+```
+
+### 版本列表
+
+返回指定应用下有日志的版本（目录名倒序：数字版本在前从大到小，`__none__` 殿后）。
+
+```bash
+curl 'http://127.0.0.1:52742/api/versions?appName=demo-app'
+# {"versions":["43","42","__none__"]}
+```
+
+### 日期列表
+
+返回指定应用+版本下有日志的日期（从文件名提取，倒序，最新在前）。Web 端三级下拉的日期选项即来自此。
+
+```bash
+curl 'http://127.0.0.1:52742/api/dates?appName=demo-app&version=42'
+# {"dates":["20260909","20260908"]}
+```
+
+### 删单条
+
+```bash
+curl -X DELETE http://127.0.0.1:52742/api/logs/<id>
+```
+
+### 按筛选批量删
+
+删除命中文件内的匹配行（读全部 → 过滤 → 原子重写）；文件删空后自动删除文件与空目录。
+
+```bash
+curl -X DELETE 'http://127.0.0.1:52742/api/logs?appName=demo-app&version=42&date=20260514&level=error'
+```
 
 ### 版本哨兵约定
 
@@ -94,32 +132,4 @@ curl -X POST http://127.0.0.1:52742/api/logs \
     "message": "__log_dog_version_warning__",
     "details": "channel=android-debug git=abc123"
   }'
-```
-
-### 应用列表
-
-返回所有 `appName`，以及每个 app 当前有多少条日志。
-
-```bash
-curl 'http://127.0.0.1:52742/api/apps'
-```
-
-### 版本列表
-
-返回所有带 `version` 的版本值，以及每个版本当前有多少条日志。
-
-```bash
-curl 'http://127.0.0.1:52742/api/versions'
-```
-
-### 删单条
-
-```bash
-curl -X DELETE http://127.0.0.1:52742/api/logs/<id>
-```
-
-### 按筛选批量删
-
-```bash
-curl -X DELETE 'http://127.0.0.1:52742/api/logs?appName=demo-app&level=error'
 ```
