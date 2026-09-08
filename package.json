@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "start": "concurrently -k -n api,web -c yellow,cyan \"pnpm start:api\" \"pnpm start:web\"",
     "start:api": "LOG_DOG_HOST=127.0.0.1 LOG_DOG_PORT=52743 NODE_ENV=production tsx api/index.ts",
-    "start:web": "vite preview --host 0.0.0.0 --port 52742 --strictPort"
+    "start:web": "vite preview --host 0.0.0.0 --port 52742 --strictPort",
+    "test": "vitest run"
   },
   "dependencies": {
     "antd": "^5.27.0",
@@ -28,6 +29,7 @@
     "concurrently": "^9.2.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^5.0.0"
   }
 }
