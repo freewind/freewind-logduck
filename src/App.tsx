@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FC, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react';
 import {
   Button,
   DatePicker,
@@ -17,26 +17,18 @@ import {
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 
-import {
-  LOG_LEVELS,
-  type AppListItem,
-  type LevelListItem,
-  type LogLevel,
-  type LogListResponse,
-  type LogQuery,
-  type LogRecord,
-  type VersionListItem,
-} from '../shared/log';
-import { formatLogTime, parseLogTime } from '../shared/logTime';
+import { LOG_LEVELS, type LogLevel, type LogRecord } from '../shared/log';
+import { todayLogDate } from '../shared/logTime';
 
 const { Content, Header } = Layout;
 const { RangePicker } = DatePicker;
-const DEFAULT_QUERY: LogQuery = { maxFieldLength: 300 };
+
+const NONE_VERSION = '__none__';
 
 type QueryFormValues = {
   appName?: string;
-  version?: number;
-  versionGte?: number;
+  version?: string;
+  date?: string;
   messageKeyword?: string;
   detailsKeyword?: string;
   level?: LogLevel;
@@ -44,80 +36,36 @@ type QueryFormValues = {
   maxFieldLength?: number;
 };
 
-const buildQueryString = (query: LogQuery) => {
+const buildQueryString = (values: QueryFormValues) => {
   const params = new URLSearchParams();
 
-  if (query.appName) {
-    params.set('appName', query.appName);
+  if (values.appName) {
+    params.set('appName', values.appName);
   }
-  if (query.version !== undefined) {
-    params.set('version', `${query.version}`);
+  if (values.version) {
+    params.set('version', values.version);
   }
-  if (query.versionGte !== undefined) {
-    params.set('versionGte', `${query.versionGte}`);
+  if (values.date) {
+    params.set('date', values.date);
   }
-  if (query.messageKeyword) {
-    params.set('messageKeyword', query.messageKeyword);
+  if (values.messageKeyword?.trim()) {
+    params.set('messageKeyword', values.messageKeyword.trim());
   }
-  if (query.detailsKeyword) {
-    params.set('detailsKeyword', query.detailsKeyword);
+  if (values.detailsKeyword?.trim()) {
+    params.set('detailsKeyword', values.detailsKeyword.trim());
   }
-  if (query.level) {
-    params.set('level', query.level);
+  if (values.level) {
+    params.set('level', values.level);
   }
-  if (query.from) {
-    params.set('from', query.from);
+  if (values.range?.[0]) {
+    params.set('from', values.range[0].format('YYYYMMDD-HHmmss'));
   }
-  if (query.to) {
-    params.set('to', query.to);
+  if (values.range?.[1]) {
+    params.set('to', values.range[1].format('YYYYMMDD-HHmmss'));
   }
-  if (query.maxFieldLength !== undefined) {
-    params.set('maxFieldLength', `${query.maxFieldLength}`);
-  }
+  params.set('maxFieldLength', `${values.maxFieldLength ?? 300}`);
 
   return params.toString();
-};
-
-const toQuery = (values: QueryFormValues): LogQuery => ({
-  appName: values.appName?.trim() || undefined,
-  version: values.version,
-  versionGte: values.versionGte,
-  messageKeyword: values.messageKeyword?.trim() || undefined,
-  detailsKeyword: values.detailsKeyword?.trim() || undefined,
-  level: values.level,
-  from: values.range?.[0] ? formatLogTime(values.range[0]) : undefined,
-  to: values.range?.[1] ? formatLogTime(values.range[1]) : undefined,
-  maxFieldLength: values.maxFieldLength ?? 300,
-});
-
-const fetchLogs = async (query: LogQuery) => {
-  const queryString = buildQueryString(query);
-  const response = await fetch(`/api/logs${queryString ? `?${queryString}` : ''}`);
-
-  if (!response.ok) {
-    throw new Error(`load_failed:${response.status}`);
-  }
-
-  return (await response.json()) as LogListResponse;
-};
-
-const deleteOne = async (id: string) => {
-  const response = await fetch(`/api/logs/${id}`, { method: 'DELETE' });
-
-  if (!response.ok) {
-    throw new Error(`delete_failed:${response.status}`);
-  }
-};
-
-const deleteMany = async (query: LogQuery) => {
-  const queryString = buildQueryString(query);
-  const response = await fetch(`/api/logs${queryString ? `?${queryString}` : ''}`, { method: 'DELETE' });
-
-  if (!response.ok) {
-    throw new Error(`delete_failed:${response.status}`);
-  }
-
-  return (await response.json()) as { deleted: number };
 };
 
 const levelColor = (level: LogLevel) => {
@@ -133,6 +81,8 @@ const levelColor = (level: LogLevel) => {
   return 'default';
 };
 
+const versionLabel = (version: string) => (version === NONE_VERSION ? '(无版本)' : version);
+
 const LogTable: FC<{
   header?: ReactNode;
   loading: boolean;
@@ -142,27 +92,19 @@ const LogTable: FC<{
   <Table<LogRecord>
     rowKey="id"
     loading={loading}
-    dataSource={[...logs].sort((left, right) => parseLogTime(right.timestamp) - parseLogTime(left.timestamp))}
+    dataSource={logs}
     title={header ? () => header : undefined}
-    pagination={{ pageSize: 100, showSizeChanger: false }}
+    pagination={false}
     columns={[
-      {
-        title: 'appName',
-        dataIndex: 'appName',
-        width: 180,
-      },
       {
         title: 'version',
         dataIndex: 'version',
-        width: 180,
+        width: 120,
         render: (value?: number) => value ?? '-',
       },
       {
         title: 'timestamp',
         dataIndex: 'timestamp',
-        render: (value: string) => value,
-        sorter: (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp),
-        defaultSortOrder: 'descend',
         width: 180,
       },
       {
@@ -204,98 +146,144 @@ const LogTable: FC<{
 export const App: FC = () => {
   const [messageApi, messageContext] = message.useMessage();
   const [form] = Form.useForm<QueryFormValues>();
-  const selectedAppName = Form.useWatch('appName', form);
-  const selectedVersion = Form.useWatch('version', form);
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState<LogQuery>(DEFAULT_QUERY);
-  const [data, setData] = useState<LogListResponse>({ apps: [], versions: [], levels: [], logs: [], total: 0 });
-  const [appOptions, setAppOptions] = useState<AppListItem[]>([]);
+  const [apps, setApps] = useState<string[]>([]);
+  const [versions, setVersions] = useState<string[]>([]);
+  const [dates, setDates] = useState<string[]>([]);
+  const [logs, setLogs] = useState<LogRecord[]>([]);
+  const [total, setTotal] = useState(0);
   const latestLoadIdRef = useRef(0);
 
-  const selectedApp = appOptions.find((item) => item.appName === selectedAppName);
-  const selectedVersionItem =
-    selectedVersion === undefined
-      ? undefined
-      : (selectedApp?.versions ?? data.versions).find((item) => item.version === selectedVersion);
-  const versionOptions = selectedApp?.versions ?? data.versions;
-  const levelItems: LevelListItem[] = selectedVersionItem?.levels ?? selectedApp?.levels ?? data.levels;
-  const levelOptions = levelItems.map((item) => ({
-    label: `${item.level.toUpperCase()} (${item.count})`,
-    value: item.level,
-  }));
+  const selectedAppName = Form.useWatch('appName', form);
 
-  const load = async (nextQuery: LogQuery) => {
-    const loadId = latestLoadIdRef.current + 1;
-    latestLoadIdRef.current = loadId;
-    setLoading(true);
+  const dateOptions = dates.includes(todayLogDate()) ? dates : [todayLogDate(), ...dates];
 
-    try {
-      const logs = await fetchLogs(nextQuery);
-      if (loadId !== latestLoadIdRef.current) {
+  const loadLogs = useCallback(
+    async (values: QueryFormValues) => {
+      if (!values.appName || !values.version) {
+        setLogs([]);
+        setTotal(0);
         return;
       }
-      setData(logs);
-      setAppOptions(logs.apps);
-      setQuery(nextQuery);
-    } catch (error) {
-      if (loadId === latestLoadIdRef.current) {
-        messageApi.error(error instanceof Error ? error.message : 'load_failed');
-      }
-    } finally {
-      if (loadId === latestLoadIdRef.current) {
-        setLoading(false);
-      }
-    }
-  };
 
-  useEffect(() => {
-    void load(DEFAULT_QUERY);
+      const loadId = latestLoadIdRef.current + 1;
+      latestLoadIdRef.current = loadId;
+      setLoading(true);
+
+      try {
+        const response = await fetch(`/api/logs?${buildQueryString(values)}`);
+        if (!response.ok) {
+          throw new Error(`load_failed:${response.status}`);
+        }
+        const data = (await response.json()) as { logs: LogRecord[]; total: number };
+        if (loadId !== latestLoadIdRef.current) {
+          return;
+        }
+        setLogs(data.logs);
+        setTotal(data.total);
+      } catch (error) {
+        if (loadId === latestLoadIdRef.current) {
+          messageApi.error(error instanceof Error ? error.message : 'load_failed');
+        }
+      } finally {
+        if (loadId === latestLoadIdRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [messageApi],
+  );
+
+  const loadVersions = useCallback(async (appName: string) => {
+    const response = await fetch(`/api/versions?appName=${encodeURIComponent(appName)}`);
+    if (!response.ok) {
+      setVersions([]);
+      return;
+    }
+    const data = (await response.json()) as { versions: string[] };
+    setVersions(data.versions);
+  }, []);
+
+  const loadDates = useCallback(async (appName: string, version: string) => {
+    const response = await fetch(
+      `/api/dates?appName=${encodeURIComponent(appName)}&version=${encodeURIComponent(version)}`,
+    );
+    if (!response.ok) {
+      setDates([]);
+      return;
+    }
+    const data = (await response.json()) as { dates: string[] };
+    setDates(data.dates);
   }, []);
 
   useEffect(() => {
-    if (selectedVersion === undefined) {
-      return;
-    }
+    void (async () => {
+      try {
+        const response = await fetch('/api/apps');
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as { apps: string[] };
+        setApps(data.apps);
+      } catch {
+        setApps([]);
+      }
+    })();
+  }, []);
 
-    if (!versionOptions.some((item) => item.version === selectedVersion)) {
-      form.setFieldValue('version', undefined);
-    }
-  }, [form, selectedVersion, versionOptions]);
+  const handleAppChange = async (appName?: string) => {
+    setVersions([]);
+    setDates([]);
+    setLogs([]);
+    setTotal(0);
+    form.setFieldsValue({ version: undefined, date: undefined });
 
-  useEffect(() => {
-    const currentLevel = form.getFieldValue('level') as LogLevel | undefined;
-    if (currentLevel === undefined) {
-      return;
+    if (appName) {
+      await loadVersions(appName);
     }
-
-    if (!levelItems.some((item) => item.level === currentLevel)) {
-      form.setFieldValue('level', undefined);
-    }
-  }, [form, levelItems]);
-
-  const handleSearch = (values: QueryFormValues) => {
-    void load(toQuery(values));
   };
 
-  const handleReset = () => {
-    form.resetFields();
+  const handleVersionChange = async (version?: string) => {
+    setDates([]);
+    setLogs([]);
+    setTotal(0);
+    form.setFieldValue('date', undefined);
+
+    if (selectedAppName && version) {
+      await loadDates(selectedAppName, version);
+      const date = todayLogDate();
+      form.setFieldValue('date', date);
+      void loadLogs({ ...(form.getFieldsValue() as QueryFormValues), date });
+    }
+  };
+
+  const handleSearch = (values: QueryFormValues) => {
+    void loadLogs(values);
   };
 
   const handleDeleteOne = async (id: string) => {
     try {
-      await deleteOne(id);
+      const response = await fetch(`/api/logs/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`delete_failed:${response.status}`);
+      }
       messageApi.success('已删除');
-      await load(query);
+      await loadLogs(form.getFieldsValue() as QueryFormValues);
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : 'delete_failed');
     }
   };
 
   const handleDeleteMany = async () => {
+    const values = form.getFieldsValue() as QueryFormValues;
     try {
-      const result = await deleteMany(query);
+      const response = await fetch(`/api/logs?${buildQueryString(values)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`delete_failed:${response.status}`);
+      }
+      const result = (await response.json()) as { deleted: number };
       messageApi.success(`已删 ${result.deleted} 条`);
-      await load(query);
+      await loadLogs(values);
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : 'delete_failed');
     }
@@ -313,12 +301,12 @@ export const App: FC = () => {
         <Content style={{ padding: 24 }}>
           <LogTable
             loading={loading}
-            logs={data.logs}
+            logs={logs}
             onDelete={handleDeleteOne}
             header={
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Typography.Text>total {data.total}</Typography.Text>
-                <Form form={form} initialValues={DEFAULT_QUERY} layout="inline" onFinish={handleSearch}>
+                <Typography.Text>total {total}</Typography.Text>
+                <Form form={form} layout="inline" onFinish={handleSearch}>
                   <Space wrap size={12}>
                     <Form.Item label="appName" name="appName">
                       <Select
@@ -327,10 +315,8 @@ export const App: FC = () => {
                         placeholder="appName"
                         optionFilterProp="label"
                         style={{ width: 220 }}
-                        options={appOptions.map((item) => ({
-                          label: `${item.appName} (${item.count})`,
-                          value: item.appName,
-                        }))}
+                        onChange={(value) => void handleAppChange(value)}
+                        options={apps.map((appName) => ({ label: appName, value: appName }))}
                       />
                     </Form.Item>
                     <Form.Item label="version" name="version">
@@ -339,15 +325,19 @@ export const App: FC = () => {
                         showSearch
                         placeholder="version"
                         optionFilterProp="label"
-                        style={{ width: 220 }}
-                        options={versionOptions.map((item) => ({
-                          label: `${item.version} (${item.count})`,
-                          value: item.version,
-                        }))}
+                        style={{ width: 180 }}
+                        onChange={(value) => void handleVersionChange(value)}
+                        options={versions.map((version) => ({ label: versionLabel(version), value: version }))}
                       />
                     </Form.Item>
-                    <Form.Item label="versionGte" name="versionGte">
-                      <InputNumber placeholder="versionGte" style={{ width: 160 }} />
+                    <Form.Item label="date" name="date">
+                      <Select
+                        allowClear
+                        placeholder="date"
+                        style={{ width: 160 }}
+                        onChange={(value) => void loadLogs(form.getFieldsValue() as QueryFormValues)}
+                        options={dateOptions.map((date) => ({ label: date, value: date }))}
+                      />
                     </Form.Item>
                     <Form.Item label="messageKeyword" name="messageKeyword">
                       <Input placeholder="message keyword" style={{ width: 180 }} />
@@ -356,7 +346,12 @@ export const App: FC = () => {
                       <Input placeholder="details keyword" style={{ width: 180 }} />
                     </Form.Item>
                     <Form.Item label="level" name="level">
-                      <Select allowClear options={levelOptions} style={{ width: 120 }} />
+                      <Select
+                        allowClear
+                        placeholder="level"
+                        style={{ width: 120 }}
+                        options={LOG_LEVELS.map((level) => ({ label: level.toUpperCase(), value: level }))}
+                      />
                     </Form.Item>
                     <Form.Item label="range" name="range">
                       <RangePicker showTime />
@@ -367,8 +362,8 @@ export const App: FC = () => {
                     <Button htmlType="submit" type="primary">
                       查询
                     </Button>
-                    <Button onClick={handleReset}>重置</Button>
-                    <Popconfirm title={`删除当前表格中的全部结果？共 ${data.total} 条`} onConfirm={() => void handleDeleteMany()}>
+                    <Button onClick={() => form.resetFields()}>重置</Button>
+                    <Popconfirm title={`删除当前文件内匹配结果？共 ${total} 条`} onConfirm={() => void handleDeleteMany()}>
                       <Button danger>删除筛选结果</Button>
                     </Popconfirm>
                   </Space>
