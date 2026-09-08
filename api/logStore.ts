@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 
 import {
   LOG_LEVELS,
@@ -10,10 +12,31 @@ import {
   type LogRecord,
   type VersionListItem,
 } from '../shared/log';
-import { parseLogTime } from '../shared/logTime';
+import { logDateOf, parseLogTime } from '../shared/logTime';
 
 const logs: LogRecord[] = [];
-const MAX_LOGS_PER_APP = 1000;
+
+export const DATA_DIR = path.resolve(process.cwd(), 'data');
+
+const lastMsByFile = new Map<string, number>();
+
+export const nextMs = (now: number, lastMs: number) => Math.max(now, lastMs + 1);
+
+const sanitizePathPart = (value: string) => {
+  if (!value || value.includes('/') || value.includes('\\') || value.includes('..')) {
+    throw new Error(`invalid_path_part:${value}`);
+  }
+
+  return value;
+};
+
+export const logFilePath = (appName: string, version: number | undefined, date: string) => {
+  const app = sanitizePathPart(appName);
+  const versionPart = version === undefined ? '__none__' : sanitizePathPart(`${version}`);
+  const fileName = `${app}-${versionPart}-${sanitizePathPart(date)}.jsonl`;
+
+  return path.join(DATA_DIR, app, versionPart, fileName);
+};
 
 const byOldest = (left: LogRecord, right: LogRecord) => parseLogTime(left.timestamp) - parseLogTime(right.timestamp);
 
@@ -75,31 +98,20 @@ const toVersionList = (summary: Map<string, { count: number; levels: Map<LogLeve
     }))
     .sort((left, right) => right.version - left.version);
 
-
-const trimAppLogs = (appName: string) => {
-  let count = 0;
-
-  for (let index = 0; index < logs.length; index += 1) {
-    if (logs[index]?.appName !== appName) {
-      continue;
-    }
-
-    count += 1;
-    if (count > MAX_LOGS_PER_APP) {
-      logs.splice(index, 1);
-      index -= 1;
-    }
-  }
-};
-
 export const insertLog = (input: LogCreateInput) => {
   const record: LogRecord = {
     ...input,
     id: randomUUID(),
   };
 
+  const filePath = logFilePath(record.appName, record.version, logDateOf(record.timestamp));
+  record._ms = nextMs(Date.now(), lastMsByFile.get(filePath) ?? 0);
+  lastMsByFile.set(filePath, record._ms);
+
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  appendFileSync(filePath, `${JSON.stringify(record)}\n`, 'utf8');
+
   logs.unshift(record);
-  trimAppLogs(record.appName);
 
   return record;
 };
