@@ -10,6 +10,7 @@ export type LogRecord = {
   level: LogLevel;
   message: string;
   details?: string;
+  _ms?: number;
 };
 
 export type LogCreateInput = {
@@ -21,6 +22,8 @@ export type LogCreateInput = {
   details?: string;
 };
 
+export type LogPageDirection = 'older' | 'newer';
+
 export type LogQuery = {
   appName?: string;
   version?: number;
@@ -31,6 +34,9 @@ export type LogQuery = {
   to?: string;
   level?: LogLevel;
   limit?: number;
+  date?: string;
+  cursor?: number;
+  direction?: LogPageDirection;
   maxFieldLength?: number;
 };
 
@@ -40,6 +46,15 @@ export type LogListResponse = {
   levels: LevelListItem[];
   logs: LogRecord[];
   total: number;
+};
+
+export type LogPageResponse = {
+  logs: LogRecord[];
+  total: number;
+  olderCursor?: number;
+  newerCursor?: number;
+  hasOlder: boolean;
+  hasNewer: boolean;
 };
 
 export type AppListItem = {

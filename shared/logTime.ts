@@ -13,3 +13,7 @@ export const parseLogTime = (value: string) => {
 export const isLogTime = (value: string) => Number.isFinite(parseLogTime(value));
 
 export const formatLogTime = (value: dayjs.ConfigType) => dayjs(value).format(LOG_TIME_FORMAT);
+
+export const logDateOf = (timestamp: string) => timestamp.slice(0, 8);
+
+export const todayLogDate = () => dayjs().format('YYYYMMDD');
