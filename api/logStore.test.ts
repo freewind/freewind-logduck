@@ -75,6 +75,15 @@ describe('filterAndSortLogs', () => {
     const result = filterAndSortLogs(noMs, {});
     expect(result.map((record) => record.id)).toEqual(['3', '2', '1']);
   });
+
+  it('keeps file order for same-second fallback ties (stable sort)', () => {
+    const sameSecond: LogRecord[] = [
+      { id: 'b', appName: 'app', timestamp: '20260514-100000', level: 'info', message: 'second' },
+      { id: 'a', appName: 'app', timestamp: '20260514-100000', level: 'info', message: 'first' },
+    ];
+    const result = filterAndSortLogs(sameSecond, {});
+    expect(result.map((record) => record.id)).toEqual(['b', 'a']);
+  });
 });
 
 describe('dateOfFileName', () => {
